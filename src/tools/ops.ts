@@ -566,7 +566,7 @@ export const OPS: Record<string, ImageOp> = {
   },
   watermark: {
     controls: [
-      { key: 'text', label: 'Watermark text', type: 'text', def: '© toolbox', placeholder: 'Watermark text' },
+      { key: 'text', label: 'Watermark text', type: 'text', def: '© opentools', placeholder: 'Watermark text' },
       { key: 'style', label: 'Style', type: 'select', def: 'tile', options: [
         { value: 'tile', label: 'Tiled (diagonal)' }, { value: 'single', label: 'Single (drag to place)' },
       ] },

@@ -241,7 +241,7 @@ export default function BatchRenamePage() {
         <Link className="btn btn--pill btn--icon" to="/tools/rename-images"><ArrowLeft size={15} weight="bold" /> Rename Images (simple)</Link>
       </div>
 
-      <footer className="footer"><span>Part of toolbox · your files never leave this device.</span></footer>
+      <footer className="footer"><span>Part of opentools · your files never leave this device.</span></footer>
     </div>
   );
 }

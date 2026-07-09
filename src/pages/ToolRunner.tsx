@@ -246,14 +246,14 @@ export default function ToolRunner() {
   // Reflect the current tool in the browser tab title.
   useEffect(() => {
     if (tool) {
-      document.title = `${tool.name} · toolbox`;
+      document.title = `${tool.name} · opentools`;
       posthog?.capture('tool_opened', {
         tool_id: tool.id,
         tool_name: tool.name,
         tool_category: tool.categoryId,
       });
     }
-    return () => { document.title = 'toolbox'; };
+    return () => { document.title = 'opentools'; };
   }, [tool]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeJob = useMemo(() => jobs.find((j) => j.id === activeId) ?? jobs[0], [jobs, activeId]);
@@ -810,7 +810,7 @@ export default function ToolRunner() {
         </ul>
       )}
 
-      <footer className="footer"><span>Part of toolbox · your files never leave this device.</span></footer>
+      <footer className="footer"><span>Part of opentools · your files never leave this device.</span></footer>
     </div>
   );
 }

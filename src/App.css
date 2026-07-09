@@ -941,7 +941,7 @@ a.megalink:hover {
 
 /* ---- Buttons ---- */
 .btn {
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 15px;
   padding: 9px 16px;
   border-radius: 10px;

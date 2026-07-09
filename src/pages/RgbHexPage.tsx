@@ -188,7 +188,7 @@ export default function RgbHexPage() {
         <Link className="btn btn--pill btn--icon" to="/tools/color-picker"><ArrowLeft size={15} weight="bold" /> Color Picker</Link>
       </div>
 
-      <footer className="footer"><span>Part of toolbox · your files never leave this device.</span></footer>
+      <footer className="footer"><span>Part of opentools · your files never leave this device.</span></footer>
     </div>
   );
 }

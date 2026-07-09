@@ -42,7 +42,7 @@ export default function ConvertPage() {
       </Suspense>
 
       <footer className="footer">
-        <span>Part of toolbox · your files never leave this device.</span>
+        <span>Part of opentools · your files never leave this device.</span>
       </footer>
     </div>
   );

@@ -1,4 +1,4 @@
-// Central catalog of every tool the toolbox offers (built or planned).
+// Central catalog of every tool opentools offers (built or planned).
 // Adding a new tool = one entry here. `status: 'live'` tools link to their
 // route; `status: 'soon'` tools render as clearly-marked upcoming cards.
 

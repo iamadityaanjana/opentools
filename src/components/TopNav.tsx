@@ -97,7 +97,7 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
   return (
     <header className="topbar topbar--nav">
       <Link className="logo logo--link" to="/">
-        toolbox…
+        opentools…
       </Link>
 
       {minimal ? (

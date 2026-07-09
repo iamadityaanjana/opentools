@@ -442,7 +442,7 @@ export default function ImageComparatorPage() {
         <Link className="btn btn--pill btn--icon" to="/convert"><ArrowLeft size={15} weight="bold" /> All image tools</Link>
       </div>
 
-      <footer className="footer"><span>Part of toolbox · your files never leave this device.</span></footer>
+      <footer className="footer"><span>Part of opentools · your files never leave this device.</span></footer>
     </div>
   );
 }

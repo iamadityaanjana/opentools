@@ -338,7 +338,7 @@ export default function LivePhotoPage() {
         </>
       )}
 
-      <footer className="footer"><span>Part of toolbox · your files never leave this device.</span></footer>
+      <footer className="footer"><span>Part of opentools · your files never leave this device.</span></footer>
     </div>
   );
 }
