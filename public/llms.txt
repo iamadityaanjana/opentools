@@ -1,0 +1,36 @@
+# opentools
+
+> opentools is a collection of fast, private image, PDF, GIF, color, metadata, and file utilities. Processing happens locally in the user's web browser; files are not uploaded to an opentools server.
+
+Canonical site: https://opentools.fun/
+Language: English
+Access: Free, no account required
+
+## Primary directories
+
+- [Image tools](https://opentools.fun/image): Browse image tools grouped by conversion, resizing, compression, editing, organization, web design, metadata, mobile, GIF, color, and miscellaneous tasks.
+- [PDF tools](https://opentools.fun/pdf): Browse tools for creating PDFs, rendering PDF pages as images, and extracting images from PDFs.
+- [Image converter](https://opentools.fun/convert): Convert images among JPEG, PNG, WebP, AVIF, TIFF, GIF, BMP, ICO, and other formats.
+
+## Notable capabilities
+
+- Convert, resize, crop, rotate, flip, compress, and batch-process images.
+- Add text, watermarks, borders, rounded corners, and visual effects.
+- Merge images, split images, create collages, and package images into ZIP files.
+- Create PDFs from images, convert PDF pages to images, and extract embedded PDF images.
+- Create and process animated GIFs.
+- Inspect or remove EXIF metadata and change image DPI.
+- Pick colors, extract palettes, convert RGB and HEX values, and count image colors.
+- Rename files, generate favicons and thumbnails, and create Base64 or data URI output.
+
+## Privacy and operation
+
+- Uploaded files remain on the user's device.
+- Image and document processing is performed client-side using browser APIs and lazily loaded codecs.
+- No account or sign-in is required to use the tools.
+- Tool availability and supported formats are documented on each tool page.
+
+## Crawling
+
+- [Sitemap](https://opentools.fun/sitemap.xml)
+- [Robots policy](https://opentools.fun/robots.txt)

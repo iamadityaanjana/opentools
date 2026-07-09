@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import ConvertPage from './pages/ConvertPage';
+import { Seo } from './components/Seo';
 import { DotsThinking } from './components/Thinking';
 import './App.css';
 
@@ -16,8 +17,10 @@ const ToolsDirectoryPage = lazy(() => import('./pages/ToolsDirectoryPage'));
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
+    <>
+      <Seo />
+      <Routes>
+        <Route path="/" element={<Landing />} />
       <Route
         path="/image"
         element={
@@ -96,7 +99,8 @@ export default function App() {
         }
       />
       <Route path="/tools" element={<Navigate to="/image" replace />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

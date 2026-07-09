@@ -20,7 +20,7 @@ export default function Landing() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          Hey,
+          Private tools for images, PDFs, and files
         </motion.h1>
 
         <PlusGrid />
