@@ -12,6 +12,7 @@ const RenameImagesPage = lazy(() => import('./pages/RenameImagesPage'));
 const BatchRenamePage = lazy(() => import('./pages/BatchRenamePage'));
 const LivePhotoPage = lazy(() => import('./pages/LivePhotoPage'));
 const WatermarkRemoverPage = lazy(() => import('./pages/WatermarkRemoverPage'));
+const ImageComparatorPage = lazy(() => import('./pages/ImageComparatorPage'));
 
 export default function App() {
   return (
@@ -67,6 +68,15 @@ export default function App() {
         element={
           <Suspense fallback={<div className="page page--wide"><div className="loading-panel"><DotsThinking label="Loading tool" /></div></div>}>
             <WatermarkRemoverPage />
+          </Suspense>
+        }
+      />
+      {/* Interactive two-image comparator (slider + onion-skin + diff heatmap). */}
+      <Route
+        path="/tools/image-comparator"
+        element={
+          <Suspense fallback={<div className="page page--wide"><div className="loading-panel"><DotsThinking label="Loading tool" /></div></div>}>
+            <ImageComparatorPage />
           </Suspense>
         }
       />

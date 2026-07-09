@@ -336,7 +336,7 @@ export default function WatermarkRemoverPage() {
       dirty: false,
     };
     stampClone(p, p);
-  }, [imgLoaded, busy, toolMode, cloneSource, toFull, pushUndo, paintMaskSeg, refreshOverlay, stampClone, syncStacks]);
+  }, [imgLoaded, busy, toolMode, cloneSource, toFull, pushUndo, paintMaskSeg, refreshOverlay, stampClone]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const st = stroke.current;

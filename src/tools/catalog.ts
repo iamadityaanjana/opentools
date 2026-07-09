@@ -269,6 +269,7 @@ const CUSTOM: Record<string, { route: string }> = {
   'batch-rename': { route: '/tools/batch-rename' },
   'live-photo-extractor': { route: '/tools/live-photo-extractor' },
   'remove-watermark-manual': { route: '/tools/remove-watermark-manual' },
+  'image-comparator': { route: '/tools/image-comparator' },
 };
 
 for (const t of TOOLS) {

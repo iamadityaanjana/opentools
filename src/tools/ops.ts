@@ -896,7 +896,7 @@ export const OPS: Record<string, ImageOp> = {
         return dot > 0 ? `${name.slice(0, dot)}-${n}${name.slice(dot)}` : `${name}-${n}`;
       };
 
-      if (Boolean(p.reencode)) {
+      if (p.reencode) {
         const [{ decodeToImageData }, { encodeImageData }] = await Promise.all([
           import('../lib/decode'),
           import('../lib/encode'),
