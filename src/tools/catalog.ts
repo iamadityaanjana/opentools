@@ -235,6 +235,8 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'heic-to-jpg': { op: 'convertJpeg' },
   'screenshot-cropper': { op: 'crop' },
   'reduce-image-size-for-upload': { op: 'reduce' },
+  // GIF
+  'gif-to-images': { op: 'gifToImages' },
   // Color
   'extract-color-palette': { op: 'colorPalette' },
   'image-color-counter': { op: 'colorCount' },

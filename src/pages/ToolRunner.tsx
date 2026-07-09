@@ -131,6 +131,8 @@ export default function ToolRunner() {
   const [previewSrcs, setPreviewSrcs] = useState<PreviewSource[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
+  const [gifFrames, setGifFrames] = useState<{ url: string; delayMs: number }[]>([]);
+  const [gifBusy, setGifBusy] = useState(false);
   const cacheRef = useRef<Map<string, PreviewSource>>(new Map());
   const initedRef = useRef<Set<string>>(new Set());
   const reorderFrom = useRef<number>(-1);
@@ -140,7 +142,8 @@ export default function ToolRunner() {
   const isRotate = tool?.op === 'rotate';
   const isFlip = tool?.op === 'flip';
   const isPdf = tool?.op === 'imagesToPdf';
-  const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op);
+  const isGif = tool?.op === 'gifToImages';
+  const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op) && !isGif;
 
   const activeJob = useMemo(() => jobs.find((j) => j.id === activeId) ?? jobs[0], [jobs, activeId]);
   const activeParams = isCombine ? comboParams : (activeJob ? paramsById[activeJob.id] ?? defaults : defaults);
@@ -244,6 +247,42 @@ export default function ToolRunner() {
     return () => { cancelled = true; clearTimeout(t); };
   }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isCombine, isPdf, op]);
 
+  // GIF frame-strip preview: decode the active GIF into small thumbnails.
+  useEffect(() => {
+    if (!isGif || !activeJob) { setGifFrames([]); return; }
+    let cancelled = false;
+    const jobFile = activeJob.file;
+    setGifBusy(true);
+    setGifFrames([]);
+    (async () => {
+      try {
+        const { decodeGifFrames } = await import('../lib/gif');
+        const frames = await decodeGifFrames(jobFile);
+        if (cancelled) return;
+        const THUMB = 72;
+        const thumbs = frames.map((f) => {
+          const s = Math.min(1, THUMB / Math.max(f.width, f.height));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(f.width * s));
+          c.height = Math.max(1, Math.round(f.height * s));
+          const cx = c.getContext('2d')!;
+          const full = document.createElement('canvas');
+          full.width = f.width; full.height = f.height;
+          full.getContext('2d')!.putImageData(f.imageData, 0, 0);
+          cx.imageSmoothingQuality = 'high';
+          cx.drawImage(full, 0, 0, c.width, c.height);
+          return { url: c.toDataURL('image/png'), delayMs: f.delayMs };
+        });
+        if (!cancelled) setGifFrames(thumbs);
+      } catch {
+        if (!cancelled) setGifFrames([]);
+      } finally {
+        if (!cancelled) setGifBusy(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isGif, activeJob]);
+
   // ---- param setters ----
   const setParam = useCallback((key: string, val: string | number | boolean) => {
     if (isCombine) { setComboParams((p) => ({ ...p, [key]: val })); return; }
@@ -274,12 +313,28 @@ export default function ToolRunner() {
   const quality = (Number(activeParams.quality ?? 90)) / 100;
 
   const runEach = useCallback(async () => {
-    if (!op?.run) return;
+    if (!op?.run && !op?.runFile) return;
     for (const job of jobs.filter((j) => j.status === 'pending' || j.status === 'failed')) {
       const jp = paramsById[job.id] ?? defaults;
       const fmt = op.outputFormat || (jp.format ? String(jp.format) : 'png');
       const q = (Number(jp.quality ?? 90)) / 100;
       setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'working', error: undefined } : j)));
+      // Special file-input ops (e.g. GIF -> frames ZIP) work off the raw File.
+      if (op.runFile) {
+        try {
+          const res = await op.runFile(job.file, jp);
+          const base = job.file.name.replace(/\.[^.]+$/, '') || 'gif';
+          if (res.blob) {
+            const blob = res.blob;
+            setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'success', result: { blob, url: URL.createObjectURL(blob), filename: `${base}-frames.zip` } } : j)));
+          }
+        } catch (e) {
+          setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'failed', error: e instanceof Error ? e.message : String(e) } : j)));
+        }
+        await sleep(10);
+        continue;
+      }
+      if (!op.run) continue;
       try {
         const canvas = await fileToCanvas(job.file);
         const res = await op.run(canvas, jp);
@@ -444,7 +499,30 @@ export default function ToolRunner() {
             </div>
           )}
 
-          <div className={`editor2__body ${previewable ? 'editor2__body--split' : ''}`}>
+          <div className={`editor2__body ${previewable || isGif ? 'editor2__body--split' : ''}`}>
+            {/* GIF frame-strip preview */}
+            {isGif && (
+              <div className="editor__preview">
+                <div className="preview-head">
+                  <span className="preview-head__label">Frames {gifBusy && <span className="preview-dot" />}</span>
+                  <span className="preview-head__note">{gifFrames.length ? `${gifFrames.length} frame${gifFrames.length === 1 ? '' : 's'} · exported as ZIP` : 'decoding…'}</span>
+                </div>
+                {gifBusy && gifFrames.length === 0 ? (
+                  <div className="preview-empty">Decoding frames…</div>
+                ) : gifFrames.length ? (
+                  <div className="gif-strip">
+                    {gifFrames.map((f, i) => (
+                      <div className="gif-strip__cell" key={i}>
+                        <img src={f.url} alt={`Frame ${i + 1}`} />
+                        <span className="gif-strip__label">{i + 1}{f.delayMs ? ` · ${f.delayMs}ms` : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="preview-empty">Couldn’t read frames from this file.</div>
+                )}
+              </div>
+            )}
             {/* Preview / stage */}
             {previewable && (
               <div className="editor__preview">

@@ -27,6 +27,12 @@ export interface ImageOp {
   mode?: 'each' | 'combine';
   run?: (src: HTMLCanvasElement, p: Params) => OpResult | Promise<OpResult>;
   runCombine?: (srcs: HTMLCanvasElement[], p: Params) => OpResult | Promise<OpResult>;
+  /**
+   * Special input op that needs the raw uploaded File (not a rasterized
+   * canvas) — e.g. animated GIFs where all frames must be decoded. Returns a
+   * ready-to-download blob (typically a ZIP).
+   */
+  runFile?: (file: File, p: Params) => OpResult | Promise<OpResult>;
 }
 
 // ---- helpers ----
@@ -456,6 +462,43 @@ export const OPS: Record<string, ImageOp> = {
         }
       });
       return { blob: pdf.output('blob') };
+    },
+  },
+
+  // ---- GIF (special file input: decode all frames -> ZIP) ----
+  gifToImages: {
+    controls: [
+      { key: 'format', label: 'Frame format', type: 'select', def: 'png', options: [
+        { value: 'png', label: 'PNG' }, { value: 'jpeg', label: 'JPEG' }, { value: 'webp', label: 'WebP' },
+      ] },
+      { key: 'quality', label: 'Quality (JPEG/WebP)', type: 'range', min: 10, max: 100, step: 5, def: 90, suffix: '%' },
+      { key: 'timing', label: 'Include frame timing in filenames', type: 'checkbox', def: false },
+    ],
+    runFile: async (file, p) => {
+      const [{ decodeGifFrames }, { encodeImageData }, JSZip] = await Promise.all([
+        import('../lib/gif'),
+        import('../lib/encode'),
+        import('jszip').then((m) => m.default),
+      ]);
+      const frames = await decodeGifFrames(file);
+      if (frames.length === 0) throw new Error('No frames found in this GIF.');
+      const fmt = String(p.format || 'png');
+      const ext = fmt === 'jpeg' ? 'jpg' : fmt;
+      const q = Number(p.quality ?? 90) / 100;
+      const withTiming = Boolean(p.timing);
+      const pad = Math.max(3, String(frames.length).length);
+      const zip = new JSZip();
+      for (const f of frames) {
+        const blob = await encodeImageData(
+          { imageData: f.imageData, width: f.width, height: f.height },
+          fmt,
+          { quality: q },
+        );
+        const num = String(f.index + 1).padStart(pad, '0');
+        const name = withTiming ? `frame-${num}-${f.delayMs}ms.${ext}` : `frame-${num}.${ext}`;
+        zip.file(name, blob);
+      }
+      return { blob: await zip.generateAsync({ type: 'blob' }) };
     },
   },
 };

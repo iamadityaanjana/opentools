@@ -423,6 +423,42 @@ a.megalink:hover {
   text-align: center;
 }
 
+/* ---- GIF frame strip ---- */
+.gif-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+.gif-strip__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.gif-strip__cell img {
+  display: block;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(45deg, #eceae4 25%, transparent 25%),
+    linear-gradient(-45deg, #eceae4 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #eceae4 75%),
+    linear-gradient(-45deg, transparent 75%, #eceae4 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
+.gif-strip__label {
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- Crop stage ---- */
 .crop-wrap {
   display: flex;
