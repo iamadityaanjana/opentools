@@ -17,6 +17,8 @@ export interface OpResult {
   text?: string;
   blob?: Blob;
   swatches?: string[];
+  /** Preferred download filename (used by blob-producing ops). */
+  filename?: string;
 }
 
 export interface ImageOp {
@@ -54,6 +56,25 @@ function pixels(src: HTMLCanvasElement, fn: (d: Uint8ClampedArray) => void): OpR
   ctx.putImageData(img, 0, 0);
   return { canvas: c };
 }
+// Draw a source canvas onto a target of size (W,H) honouring a fit mode.
+function drawFit(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, W: number, H: number, fit: string) {
+  ctx.imageSmoothingQuality = 'high';
+  if (fit === 'stretch') { ctx.drawImage(src, 0, 0, W, H); return; }
+  const scale = fit === 'cover' ? Math.max(W / src.width, H / src.height) : Math.min(W / src.width, H / src.height);
+  const dw = src.width * scale, dh = src.height * scale;
+  ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+}
+
+// Resize an ImageData to (W,H) via a canvas, returning the resized ImageData.
+function scaleImageData(img: ImageData, sw: number, sh: number, W: number, H: number): ImageData {
+  const [srcC, srcCtx] = make(sw, sh);
+  srcCtx.putImageData(img, 0, 0);
+  const [dstC, dstCtx] = make(W, H);
+  dstCtx.imageSmoothingQuality = 'high';
+  dstCtx.drawImage(srcC, 0, 0, W, H);
+  return dstCtx.getImageData(0, 0, W, H);
+}
+
 function roundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
@@ -499,6 +520,140 @@ export const OPS: Record<string, ImageOp> = {
         zip.file(name, blob);
       }
       return { blob: await zip.generateAsync({ type: 'blob' }) };
+    },
+  },
+
+  // ---- GIF creation & transforms (animated output) ----
+  // Many still images -> one animated GIF.
+  imagesToGif: {
+    mode: 'combine',
+    outputFormat: 'gif',
+    controls: [
+      { key: 'delay', label: 'Frame delay', type: 'range', min: 20, max: 2000, step: 20, def: 150, suffix: 'ms' },
+      { key: 'loop', label: 'Loop count (0 = forever)', type: 'number', min: 0, def: 0 },
+      { key: 'fit', label: 'Frame fit', type: 'select', def: 'contain', options: [
+        { value: 'contain', label: 'Contain (letterbox)' },
+        { value: 'cover', label: 'Cover (crop)' },
+        { value: 'stretch', label: 'Stretch' },
+      ] },
+      { key: 'width', label: 'Width (0 = first image)', type: 'number', min: 0, def: 0 },
+      { key: 'height', label: 'Height (0 = first image)', type: 'number', min: 0, def: 0 },
+      { key: 'bg', label: 'Background', type: 'color', def: '#ffffff' },
+      { key: 'dither', label: 'Dithering', type: 'checkbox', def: false },
+    ],
+    runCombine: async (srcs, p) => {
+      const { encodeAnimatedGIF } = await import('../lib/gifEncoder');
+      let W = Math.round(Number(p.width) || 0);
+      let H = Math.round(Number(p.height) || 0);
+      if (W <= 0 || H <= 0) { W = srcs[0].width; H = srcs[0].height; }
+      const fit = String(p.fit || 'contain');
+      const delay = Number(p.delay ?? 150);
+      const frames = srcs.map((s) => {
+        const [c, ctx] = make(W, H);
+        if (fit === 'contain') { ctx.fillStyle = String(p.bg); ctx.fillRect(0, 0, W, H); }
+        drawFit(ctx, s, W, H, fit);
+        const img = ctx.getImageData(0, 0, W, H);
+        return { data: img.data, width: W, height: H, delayMs: delay };
+      });
+      const blob = encodeAnimatedGIF(frames, {
+        loop: Number(p.loop) || 0,
+        dither: Boolean(p.dither),
+        transparent: fit === 'contain' ? false : true,
+        maxColors: 256,
+      });
+      return { blob, filename: 'animated.gif' };
+    },
+  },
+
+  // Decode a GIF, resize every frame, re-encode (timing + loop preserved).
+  gifResizer: {
+    outputFormat: 'gif',
+    controls: [
+      { key: 'unit', label: 'Resize by', type: 'select', def: 'px', options: [
+        { value: 'px', label: 'Pixels' }, { value: 'percent', label: 'Percentage' },
+      ] },
+      { key: 'width', label: 'Width', type: 'number', min: 1, def: 480 },
+      { key: 'height', label: 'Height', type: 'number', min: 1, def: 480 },
+      { key: 'keepAspect', label: 'Keep aspect ratio', type: 'checkbox', def: true },
+      { key: 'dither', label: 'Dithering', type: 'checkbox', def: false },
+    ],
+    runFile: async (file, p) => {
+      const [{ decodeGif }, { encodeAnimatedGIF }] = await Promise.all([
+        import('../lib/gif'),
+        import('../lib/gifEncoder'),
+      ]);
+      const { frames, width, height, loopCount } = await decodeGif(file);
+      if (frames.length === 0) throw new Error('No frames found in this GIF.');
+
+      let W: number, H: number;
+      if (p.unit === 'percent') {
+        if (p.keepAspect) { const s = Number(p.width) / 100; W = width * s; H = height * s; }
+        else { W = (width * Number(p.width)) / 100; H = (height * Number(p.height)) / 100; }
+      } else {
+        W = Number(p.width); H = Number(p.height);
+        if (p.keepAspect) { const s = Math.min(W / width, H / height); W = width * s; H = height * s; }
+      }
+      W = Math.max(1, Math.round(W)); H = Math.max(1, Math.round(H));
+
+      const out = frames.map((f) => {
+        const scaled = scaleImageData(f.imageData, f.width, f.height, W, H);
+        return { data: scaled.data, width: W, height: H, delayMs: f.delayMs };
+      });
+      const blob = encodeAnimatedGIF(out, { loop: loopCount, dither: Boolean(p.dither), transparent: true });
+      const base = file.name.replace(/\.[^.]+$/, '') || 'gif';
+      return { blob, filename: `${base}-${W}x${H}.gif` };
+    },
+  },
+
+  // Shrink a GIF's file size: palette reduction, optional downscale, frame drop.
+  gifOptimizer: {
+    outputFormat: 'gif',
+    controls: [
+      { key: 'colors', label: 'Max colors', type: 'range', min: 2, max: 256, step: 2, def: 128 },
+      { key: 'scale', label: 'Scale', type: 'range', min: 20, max: 100, step: 5, def: 100, suffix: '%' },
+      { key: 'drop', label: 'Frame reduction', type: 'select', def: '1', options: [
+        { value: '1', label: 'Keep all frames' },
+        { value: '2', label: 'Drop every 2nd frame' },
+        { value: '3', label: 'Keep every 3rd frame' },
+      ] },
+      { key: 'dither', label: 'Dithering', type: 'checkbox', def: false },
+    ],
+    runFile: async (file, p) => {
+      const [{ decodeGif }, { encodeAnimatedGIF }] = await Promise.all([
+        import('../lib/gif'),
+        import('../lib/gifEncoder'),
+      ]);
+      const { frames, width, height, loopCount } = await decodeGif(file);
+      if (frames.length === 0) throw new Error('No frames found in this GIF.');
+
+      // Drop frames but fold their delays into the kept frame so total runtime
+      // (and thus perceived speed) is preserved.
+      const keepEvery = Math.max(1, Number(p.drop) || 1);
+      const kept: { imageData: ImageData; width: number; height: number; delayMs: number }[] = [];
+      let carry = 0;
+      frames.forEach((f, i) => {
+        if (i % keepEvery === 0) { kept.push({ ...f, delayMs: f.delayMs + carry }); carry = 0; }
+        else carry += f.delayMs;
+      });
+      if (carry > 0 && kept.length) kept[kept.length - 1].delayMs += carry;
+
+      const scale = Math.max(0.05, Math.min(1, Number(p.scale) / 100));
+      const W = Math.max(1, Math.round(width * scale));
+      const H = Math.max(1, Math.round(height * scale));
+
+      const out = kept.map((f) => {
+        if (scale === 1) return { data: f.imageData.data, width: W, height: H, delayMs: f.delayMs };
+        const scaled = scaleImageData(f.imageData, f.width, f.height, W, H);
+        return { data: scaled.data, width: W, height: H, delayMs: f.delayMs };
+      });
+      const blob = encodeAnimatedGIF(out, {
+        loop: loopCount,
+        maxColors: Number(p.colors) || 128,
+        dither: Boolean(p.dither),
+        transparent: true,
+      });
+      const base = file.name.replace(/\.[^.]+$/, '') || 'gif';
+      return { blob, filename: `${base}-optimized.gif` };
     },
   },
 };

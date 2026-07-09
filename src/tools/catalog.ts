@@ -236,7 +236,10 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'screenshot-cropper': { op: 'crop' },
   'reduce-image-size-for-upload': { op: 'reduce' },
   // GIF
+  'images-to-gif': { op: 'imagesToGif', mode: 'combine' },
   'gif-to-images': { op: 'gifToImages' },
+  'gif-optimizer': { op: 'gifOptimizer' },
+  'gif-resizer': { op: 'gifResizer' },
   // Color
   'extract-color-palette': { op: 'colorPalette' },
   'image-color-counter': { op: 'colorCount' },

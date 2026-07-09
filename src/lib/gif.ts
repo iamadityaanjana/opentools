@@ -29,6 +29,12 @@ export interface DecodedGif {
   /** Logical screen width (all frames share these dimensions). */
   width: number;
   height: number;
+  /**
+   * Netscape loop count: 0 = loop forever, n = play n extra times. Defaults to
+   * 0 (loop forever) when the GIF has no NETSCAPE2.0 application extension,
+   * which matches how virtually every animated GIF behaves in practice.
+   */
+  loopCount: number;
 }
 
 type GifInput = File | Blob | ArrayBuffer | Uint8Array;
@@ -39,6 +45,21 @@ async function toArrayBuffer(input: GifInput): Promise<ArrayBuffer> {
     return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength) as ArrayBuffer;
   }
   return input.arrayBuffer();
+}
+
+// Scan the raw bytes for the NETSCAPE2.0 application extension and read its
+// 16-bit little-endian loop count. Returns 0 (loop forever) when absent.
+function readLoopCount(bytes: Uint8Array): number {
+  const sig = [0x4e, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30]; // "NETSCAPE2.0"
+  for (let i = 0; i + sig.length + 4 < bytes.length; i++) {
+    let match = true;
+    for (let j = 0; j < sig.length; j++) { if (bytes[i + j] !== sig[j]) { match = false; break; } }
+    if (!match) continue;
+    const k = i + sig.length;
+    // Expect sub-block: 0x03 (size) 0x01 (id) loopLo loopHi
+    if (bytes[k] === 0x03 && bytes[k + 1] === 0x01) return bytes[k + 2] | (bytes[k + 3] << 8);
+  }
+  return 0;
 }
 
 /**
@@ -53,6 +74,7 @@ export async function decodeGif(input: GifInput): Promise<DecodedGif> {
   const buffer = await toArrayBuffer(input);
   const gif = parseGIF(buffer);
   const parsed = decompressFrames(gif, true);
+  const loopCount = readLoopCount(new Uint8Array(buffer));
 
   const width = gif.lsd.width;
   const height = gif.lsd.height;
@@ -99,7 +121,7 @@ export async function decodeGif(input: GifInput): Promise<DecodedGif> {
     }
   });
 
-  return { frames, width, height };
+  return { frames, width, height, loopCount };
 }
 
 /** Convenience wrapper returning just the composited frames. */

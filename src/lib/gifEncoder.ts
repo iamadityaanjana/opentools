@@ -178,3 +178,187 @@ export function encodeGIF(img: ImageData): Blob {
 
   return new Blob([new Uint8Array(w.bytes)], { type: 'image/gif' });
 }
+
+// ---------------------------------------------------------------------------
+// Animated GIF89a encoder (multi-frame).
+//
+// Writes a NETSCAPE2.0 looping block plus, per frame, a Graphic Control
+// Extension (delay + optional 1-bit transparency) and a local color table so
+// each frame keeps its own median-cut palette. Optional Floyd–Steinberg
+// dithering. All frames must share the logical screen dimensions.
+// ---------------------------------------------------------------------------
+
+export interface AnimatedGifFrame {
+  /** RGBA pixels, length = width * height * 4. */
+  data: Uint8ClampedArray | Uint8Array;
+  width: number;
+  height: number;
+  /** Display duration in milliseconds. */
+  delayMs: number;
+}
+
+export interface AnimatedGifOptions {
+  /** Loop count: 0 = loop forever (default), n = play n extra times. */
+  loop?: number;
+  /** Max palette entries per frame (2–256, default 256). */
+  maxColors?: number;
+  /** Floyd–Steinberg dithering (default false). */
+  dither?: boolean;
+  /** Preserve alpha as 1-bit GIF transparency (default true). */
+  transparent?: boolean;
+}
+
+const ALPHA_CUTOFF = 128;
+// Cap the number of pixels fed into median-cut so palette generation stays fast
+// on large frames; mapping still uses every pixel for accuracy.
+const PALETTE_SAMPLE = 24000;
+
+function collectPaletteRGB(data: Uint8ClampedArray | Uint8Array, n: number, hasTransparent: boolean): Uint8Array {
+  const step = Math.max(1, Math.floor(n / PALETTE_SAMPLE));
+  const out: number[] = [];
+  for (let i = 0; i < n; i += step) {
+    const a = data[i * 4 + 3];
+    if (hasTransparent && a < ALPHA_CUTOFF) continue;
+    out.push(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
+  }
+  if (out.length === 0) out.push(0, 0, 0);
+  return Uint8Array.from(out);
+}
+
+function clamp8(v: number): number {
+  return v < 0 ? 0 : v > 255 ? 255 : v;
+}
+
+function mapFrameIndices(
+  data: Uint8ClampedArray | Uint8Array,
+  width: number,
+  height: number,
+  palette: number[][],
+  transparentIndex: number,
+  dither: boolean,
+): Uint8Array {
+  const n = width * height;
+  const indices = new Uint8Array(n);
+  const hasTransparent = transparentIndex >= 0;
+
+  if (!dither) {
+    const cache = new Map<number, number>();
+    for (let i = 0; i < n; i++) {
+      if (hasTransparent && data[i * 4 + 3] < ALPHA_CUTOFF) { indices[i] = transparentIndex; continue; }
+      const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+      const key = (r << 16) | (g << 8) | b;
+      let idx = cache.get(key);
+      if (idx === undefined) { idx = nearest(palette, r, g, b); cache.set(key, idx); }
+      indices[i] = idx;
+    }
+    return indices;
+  }
+
+  // Floyd–Steinberg: diffuse quantization error across a working RGB buffer.
+  const buf = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { buf[i * 3] = data[i * 4]; buf[i * 3 + 1] = data[i * 4 + 1]; buf[i * 3 + 2] = data[i * 4 + 2]; }
+  const push = (i: number, er: number, eg: number, eb: number, f: number) => {
+    buf[i * 3] += (er * f) / 16; buf[i * 3 + 1] += (eg * f) / 16; buf[i * 3 + 2] += (eb * f) / 16;
+  };
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (hasTransparent && data[i * 4 + 3] < ALPHA_CUTOFF) { indices[i] = transparentIndex; continue; }
+      const r = clamp8(buf[i * 3]), g = clamp8(buf[i * 3 + 1]), b = clamp8(buf[i * 3 + 2]);
+      const idx = nearest(palette, r, g, b);
+      indices[i] = idx;
+      const er = r - palette[idx][0], eg = g - palette[idx][1], eb = b - palette[idx][2];
+      if (x + 1 < width) push(i + 1, er, eg, eb, 7);
+      if (y + 1 < height) {
+        if (x > 0) push(i + width - 1, er, eg, eb, 3);
+        push(i + width, er, eg, eb, 5);
+        if (x + 1 < width) push(i + width + 1, er, eg, eb, 1);
+      }
+    }
+  }
+  return indices;
+}
+
+function writeAnimatedFrame(w: ByteWriter, frame: AnimatedGifFrame, maxColors: number, dither: boolean, allowTransparent: boolean) {
+  const { data, width, height, delayMs } = frame;
+  const n = width * height;
+
+  let hasTransparent = false;
+  if (allowTransparent) {
+    for (let i = 0; i < n; i++) { if (data[i * 4 + 3] < ALPHA_CUTOFF) { hasTransparent = true; break; } }
+  }
+
+  const colorSlots = Math.max(2, hasTransparent ? maxColors - 1 : maxColors);
+  const paletteRGB = collectPaletteRGB(data, n, hasTransparent);
+  const palette = medianCut(paletteRGB, colorSlots);
+  const transparentIndex = hasTransparent ? palette.length : -1;
+
+  const totalColors = palette.length + (hasTransparent ? 1 : 0);
+  let bits = 1;
+  while (1 << bits < totalColors) bits++;
+  const tableSize = 1 << bits;
+
+  const indices = mapFrameIndices(data, width, height, palette, transparentIndex, dither);
+
+  // Graphic Control Extension: disposal + delay + transparency.
+  w.writeByte(0x21); w.writeByte(0xf9); w.writeByte(0x04);
+  const disposal = hasTransparent ? 2 : 1; // 2 = restore to background so transparency doesn't accumulate
+  w.writeByte((disposal << 2) | (hasTransparent ? 1 : 0));
+  w.writeShort(Math.max(0, Math.round(delayMs / 10))); // centiseconds
+  w.writeByte(hasTransparent ? transparentIndex : 0);
+  w.writeByte(0);
+
+  // Image descriptor with a local color table.
+  w.writeByte(0x2c);
+  w.writeShort(0); w.writeShort(0);
+  w.writeShort(width); w.writeShort(height);
+  w.writeByte(0x80 | (bits - 1));
+
+  for (let i = 0; i < tableSize; i++) {
+    const c = palette[i] ?? [0, 0, 0];
+    w.writeByte(c[0]); w.writeByte(c[1]); w.writeByte(c[2]);
+  }
+
+  const minCodeSize = Math.max(2, bits);
+  w.writeByte(minCodeSize);
+  const lzw = lzwEncode(minCodeSize, indices);
+  for (let i = 0; i < lzw.length; i += 255) {
+    const chunk = lzw.slice(i, i + 255);
+    w.writeByte(chunk.length);
+    w.writeBytes(chunk);
+  }
+  w.writeByte(0);
+}
+
+export function encodeAnimatedGIF(frames: AnimatedGifFrame[], options: AnimatedGifOptions = {}): Blob {
+  if (frames.length === 0) throw new Error('No frames to encode.');
+  const loop = Math.max(0, Math.round(options.loop ?? 0));
+  const maxColors = Math.max(2, Math.min(256, Math.round(options.maxColors ?? 256)));
+  const dither = options.dither ?? false;
+  const allowTransparent = options.transparent ?? true;
+
+  const width = frames[0].width;
+  const height = frames[0].height;
+
+  const w = new ByteWriter();
+  w.writeString('GIF89a');
+  w.writeShort(width);
+  w.writeShort(height);
+  w.writeByte(0x70); // no global color table; 8-bit color resolution
+  w.writeByte(0); // background color index
+  w.writeByte(0); // pixel aspect ratio
+
+  // NETSCAPE2.0 application extension → loop control.
+  w.writeByte(0x21); w.writeByte(0xff); w.writeByte(0x0b);
+  w.writeString('NETSCAPE2.0');
+  w.writeByte(0x03); w.writeByte(0x01);
+  w.writeShort(loop);
+  w.writeByte(0x00);
+
+  for (const frame of frames) {
+    writeAnimatedFrame(w, frame, maxColors, dither, allowTransparent);
+  }
+
+  w.writeByte(0x3b);
+  return new Blob([new Uint8Array(w.bytes)], { type: 'image/gif' });
+}
