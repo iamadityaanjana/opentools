@@ -59,6 +59,20 @@ export interface TileRect {
  * Shared by the split-image op and its live grid-line overlay so the preview
  * always matches the exported tiles exactly.
  */
+/** Parse a JSON-encoded array of positive integers, falling back when empty/invalid. */
+export function parseIntList(v: unknown, fallback: () => number[]): number[] {
+  if (typeof v === 'string' && v) {
+    try {
+      const arr = JSON.parse(v);
+      if (Array.isArray(arr)) {
+        const nums = arr.map((n) => Math.max(1, Math.round(Number(n)))).filter((n) => Number.isFinite(n));
+        if (nums.length) return nums;
+      }
+    } catch { /* fall through */ }
+  }
+  return fallback();
+}
+
 /** Parse a JSON-encoded array of numbers stored in a param (0..1 fractions). */
 export function parseFractions(v: unknown): number[] {
   if (typeof v !== 'string' || !v) return [];
@@ -119,32 +133,97 @@ export function splitRects(W: number, H: number, p: Params): TileRect[] {
 }
 
 // ---- merge (freeform) layout ----
-export interface MergeLayer { nx: number; ny: number; nw: number; nh: number; z?: number; }
+// Layers are stored in canvas-pixel space so resizing the canvas never distorts
+// images — they keep their pixel size/position relative to the canvas origin.
+export interface MergeLayer { x: number; y: number; w: number; h: number; z?: number; }
 export interface MergeLayoutResult { W: number; H: number; layers: MergeLayer[]; }
 
-/** Default merge layout: images laid out left-to-right, matched to a common height. */
-export function defaultMergeLayout(sizes: { w: number; h: number }[]): MergeLayoutResult {
-  if (sizes.length === 0) return { W: 1, H: 1, layers: [] };
-  const H = Math.max(...sizes.map((s) => s.h || 1));
-  const scaled = sizes.map((s) => ({ w: (s.w || 1) * (H / (s.h || 1)), h: H }));
-  const W = Math.max(1, scaled.reduce((a, s) => a + s.w, 0));
-  let x = 0;
-  const layers = scaled.map((s, i) => { const L = { nx: x / W, ny: 0, nw: s.w / W, nh: 1, z: i }; x += s.w; return L; });
-  return { W: Math.round(W), H: Math.round(H), layers };
+export const MERGE_DEFAULT_W = 1200;
+export const MERGE_DEFAULT_H = 900;
+
+function mergeCanvasDims(p: Params): { W: number; H: number } {
+  return {
+    W: Math.max(50, Math.round(Number(p.canvasW) || MERGE_DEFAULT_W)),
+    H: Math.max(50, Math.round(Number(p.canvasH) || MERGE_DEFAULT_H)),
+  };
 }
 
-/** Resolve the merge layout from params, falling back to the default row layout. */
+/** Arrange images into a `cols`-wide grid, each image fit (contain) into its cell. */
+export function gridMergeLayout(sizes: { w: number; h: number }[], cols: number, W: number, H: number): MergeLayer[] {
+  const n = sizes.length;
+  if (n === 0) return [];
+  const c = Math.max(1, Math.min(cols, n));
+  const rows = Math.ceil(n / c);
+  const cellW = W / c, cellH = H / rows;
+  const pad = Math.min(cellW, cellH) * 0.04;
+  return sizes.map((s, i) => {
+    const col = i % c, row = Math.floor(i / c);
+    const iw = s.w || 1, ih = s.h || 1;
+    const availW = cellW - pad * 2, availH = cellH - pad * 2;
+    const scale = Math.min(availW / iw, availH / ih);
+    const w = iw * scale, h = ih * scale;
+    return { x: col * cellW + (cellW - w) / 2, y: row * cellH + (cellH - h) / 2, w, h, z: i };
+  });
+}
+
+/** Resolve the merge layout from params, falling back to a grid arrangement. */
 export function mergeLayout(p: Params, sizes: { w: number; h: number }[]): MergeLayoutResult {
-  const W = Number(p.canvasW), H = Number(p.canvasH);
-  if (typeof p.layout === 'string' && p.layout && W > 0 && H > 0) {
+  const { W, H } = mergeCanvasDims(p);
+  if (typeof p.layout === 'string' && p.layout) {
     try {
       const parsed = JSON.parse(p.layout);
       if (Array.isArray(parsed) && parsed.length === sizes.length) {
         return { W, H, layers: parsed as MergeLayer[] };
       }
-    } catch { /* fall through to default */ }
+    } catch { /* fall through to grid */ }
   }
-  return defaultMergeLayout(sizes);
+  return { W, H, layers: gridMergeLayout(sizes, Math.round(Number(p.cols) || 2), W, H) };
+}
+
+// ---- collage (justified / mosaic) layout ----
+export interface CollageRect { i: number; x: number; y: number; w: number; h: number; }
+
+/** Default per-row image counts: fill rows `per` images wide. */
+export function defaultRowCounts(n: number, per = 3): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < n; i += per) out.push(Math.min(per, n - i));
+  return out.length ? out : [Math.max(1, n)];
+}
+
+/** Partition image indices into rows following `rowCounts`; extras spill to a final row. */
+export function collageRows(n: number, rowCounts: number[]): number[][] {
+  const rows: number[][] = [];
+  let idx = 0;
+  for (const c of rowCounts) {
+    if (idx >= n) break;
+    const take = Math.max(1, Math.min(Math.round(c) || 1, n - idx));
+    rows.push(Array.from({ length: take }, (_, k) => idx + k));
+    idx += take;
+  }
+  if (idx < n) rows.push(Array.from({ length: n - idx }, (_, k) => idx + k));
+  return rows;
+}
+
+/** Justified gallery: each row spans the full width; row height derives from aspects. */
+export function collageLayout(sizes: { w: number; h: number }[], rowCounts: number[], canvasW: number, gap: number): { W: number; H: number; rects: CollageRect[] } {
+  const rows = collageRows(sizes.length, rowCounts);
+  const rects: CollageRect[] = [];
+  let y = 0;
+  for (const row of rows) {
+    const k = row.length;
+    const sumA = row.reduce((a, i) => a + (sizes[i].w || 1) / (sizes[i].h || 1), 0) || 1;
+    const avail = Math.max(1, canvasW - gap * (k - 1));
+    const H = avail / sumA;
+    let x = 0;
+    for (const i of row) {
+      const a = (sizes[i].w || 1) / (sizes[i].h || 1);
+      const w = a * H;
+      rects.push({ i, x, y, w, h: H });
+      x += w + gap;
+    }
+    y += H + gap;
+  }
+  return { W: canvasW, H: Math.max(1, y - gap), rects };
 }
 
 // ---- helpers ----
@@ -414,15 +493,18 @@ export const OPS: Record<string, ImageOp> = {
     controls: [
       { key: 'size', label: 'Border width', type: 'range', min: 0, max: 120, step: 1, def: 20, suffix: 'px' },
       { key: 'color', label: 'Color', type: 'color', def: '#ffffff' },
-      { key: 'radius', label: 'Corner radius', type: 'range', min: 0, max: 300, step: 2, def: 0, suffix: 'px' },
+      { key: 'outerRadius', label: 'Outer corner radius', type: 'range', min: 0, max: 400, step: 2, def: 0, suffix: 'px' },
+      { key: 'imageRadius', label: 'Image corner radius', type: 'range', min: 0, max: 400, step: 2, def: 0, suffix: 'px' },
     ],
     run: (src, p) => {
-      const b = Number(p.size); const r = Math.max(0, Number(p.radius) || 0);
+      const b = Math.max(0, Number(p.size) || 0);
+      const outer = Math.max(0, Number(p.outerRadius) || 0);
+      const inner = Math.max(0, Number(p.imageRadius) || 0);
       const [c, ctx] = make(src.width + b * 2, src.height + b * 2);
-      if (r > 0) { roundRectPath(ctx, 0, 0, c.width, c.height, r + b); ctx.clip(); }
+      if (outer > 0) { roundRectPath(ctx, 0, 0, c.width, c.height, outer); ctx.clip(); }
       ctx.fillStyle = String(p.color); ctx.fillRect(0, 0, c.width, c.height);
       ctx.save();
-      if (r > 0) { roundRectPath(ctx, b, b, src.width, src.height, r); ctx.clip(); }
+      if (inner > 0) { roundRectPath(ctx, b, b, src.width, src.height, inner); ctx.clip(); }
       ctx.drawImage(src, b, b);
       ctx.restore();
       return { canvas: c };
@@ -590,10 +672,14 @@ export const OPS: Record<string, ImageOp> = {
   // ---- Combine (many -> one) ----
   merge: {
     mode: 'combine',
-    controls: [{ key: 'bg', label: 'Background', type: 'color', def: '#ffffff' }],
-    // Freeform compositor: the MergeCanvas editor writes a normalized `layout`
-    // (per-image {nx,ny,nw,nh} in 0..1) plus the canvas dimensions. When no
-    // layout is present yet, fall back to a simple horizontal row.
+    // Freeform compositor on a user-sized canvas. The MergeCanvas editor writes a
+    // pixel-space `layout` ({x,y,w,h,z}); without one, images arrange into a grid.
+    controls: [
+      { key: 'canvasW', label: 'Canvas width (px)', type: 'number', min: 50, def: MERGE_DEFAULT_W },
+      { key: 'canvasH', label: 'Canvas height (px)', type: 'number', min: 50, def: MERGE_DEFAULT_H },
+      { key: 'cols', label: 'Grid columns', type: 'range', min: 1, max: 6, step: 1, def: 2 },
+      { key: 'bg', label: 'Background', type: 'color', def: '#ffffff' },
+    ],
     runCombine: (srcs, p) => {
       const layout = mergeLayout(p, srcs.map((s) => ({ w: s.width, h: s.height })));
       const [c, ctx] = make(layout.W, layout.H);
@@ -604,27 +690,30 @@ export const OPS: Record<string, ImageOp> = {
       for (const i of order) {
         const L = layout.layers[i];
         if (!L) continue;
-        ctx.drawImage(srcs[i], L.nx * layout.W, L.ny * layout.H, L.nw * layout.W, L.nh * layout.H);
+        ctx.drawImage(srcs[i], L.x, L.y, L.w, L.h);
       }
       return { canvas: c };
     },
   },
   collage: {
     mode: 'combine',
-    controls: [{ key: 'cols', label: 'Columns', type: 'range', min: 1, max: 6, step: 1, def: 3 }, { key: 'cell', label: 'Cell size (px)', type: 'number', min: 80, def: 300 }, { key: 'gap', label: 'Gap', type: 'range', min: 0, max: 40, step: 2, def: 8, suffix: 'px' }, { key: 'bg', label: 'Background', type: 'color', def: '#ffffff' }],
+    // Justified mosaic: rows span the full width, each row can hold a different
+    // number of images (edited via the CollageEditor's per-row steppers).
+    controls: [
+      { key: 'canvasW', label: 'Width (px)', type: 'number', min: 200, def: 1200 },
+      { key: 'gap', label: 'Gap', type: 'range', min: 0, max: 40, step: 2, def: 8, suffix: 'px' },
+      { key: 'bg', label: 'Background', type: 'color', def: '#ffffff' },
+    ],
     runCombine: (srcs, p) => {
-      const cols = Math.max(1, Math.round(Number(p.cols) || 3));
-      const cell = Math.max(40, Math.round(Number(p.cell) || 300));
+      const sizes = srcs.map((s) => ({ w: s.width, h: s.height }));
+      const counts = parseIntList(p.rowCounts, () => defaultRowCounts(srcs.length));
       const gap = Math.max(0, Math.round(Number(p.gap) || 0));
-      const rows = Math.max(1, Math.ceil(srcs.length / cols));
-      const w = cols * cell + gap * (cols + 1), h = rows * cell + gap * (rows + 1);
-      const [c, ctx] = make(w, h); ctx.fillStyle = String(p.bg); ctx.fillRect(0, 0, w, h);
+      const W = Math.max(200, Math.round(Number(p.canvasW) || 1200));
+      const { H, rects } = collageLayout(sizes, counts, W, gap);
+      const [c, ctx] = make(W, Math.round(H));
+      ctx.fillStyle = String(p.bg); ctx.fillRect(0, 0, c.width, c.height);
       ctx.imageSmoothingQuality = 'high';
-      srcs.forEach((s, i) => {
-        const cx = gap + (i % cols) * (cell + gap), cy = gap + Math.floor(i / cols) * (cell + gap);
-        const sc = Math.min(cell / s.width, cell / s.height); const dw = s.width * sc, dh = s.height * sc;
-        ctx.drawImage(s, cx + (cell - dw) / 2, cy + (cell - dh) / 2, dw, dh);
-      });
+      rects.forEach((r) => ctx.drawImage(srcs[r.i], r.x, r.y, r.w, r.h));
       return { canvas: c };
     },
   },

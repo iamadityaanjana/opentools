@@ -653,6 +653,62 @@ a.megalink:hover {
   cursor: nwse-resize;
 }
 
+/* ---- Collage editor (justified mosaic) ---- */
+.collage-stage {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.collage-cell {
+  position: absolute;
+  background-size: cover;
+  background-position: center;
+  outline: 1px solid rgba(255, 255, 255, 0.7);
+}
+.collage-cell__idx {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+}
+.collage-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.collage-rowctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.collage-rowctrl__label {
+  font-size: 12px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.collage-rowctrl__steppers {
+  display: flex;
+  gap: 4px;
+}
+
 /* ---- Custom dropdown (replaces native select) ---- */
 .dd {
   position: relative;
