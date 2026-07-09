@@ -267,6 +267,8 @@ const CUSTOM: Record<string, { route: string }> = {
   'rgb-hex-converter': { route: '/tools/rgb-hex-converter' },
   'rename-images': { route: '/tools/rename-images' },
   'batch-rename': { route: '/tools/batch-rename' },
+  'live-photo-extractor': { route: '/tools/live-photo-extractor' },
+  'remove-watermark-manual': { route: '/tools/remove-watermark-manual' },
 };
 
 for (const t of TOOLS) {
