@@ -16,17 +16,21 @@ The wizard has completed a deep integration of PostHog analytics into this brows
 | `live_photo_frame_exported` | User exported a specific video frame from a Live Photo motion clip. | `src/pages/LivePhotoPage.tsx` |
 | `images_renamed_downloaded` | User downloaded the ZIP of renamed images from the Rename Images tool. | `src/pages/RenameImagesPage.tsx` |
 | `images_compared` | User loaded both images into the Image Comparator and triggered a pixel diff. | `src/pages/ImageComparatorPage.tsx` |
+| `batch_renamed_downloaded` | User downloaded a ZIP of batch-renamed images from the Batch Rename page. | `src/pages/BatchRenamePage.tsx` |
+| `tool_search_performed` | User searched for a tool in the Tools Directory search bar (debounced 600 ms). | `src/pages/ToolsDirectoryPage.tsx` |
+| `tool_category_toggled` | User opened or closed a tool category accordion in the Tools Directory. | `src/pages/ToolsDirectoryPage.tsx` |
+| `color_value_copied` | User copied a color value (HEX, RGB, or HSL) from the RGB-HEX Converter. | `src/pages/RgbHexPage.tsx` |
 
 ## Next steps
 
 We've built some insights and a dashboard for you to keep an eye on user behavior, based on the events we just instrumented:
 
-- [Analytics basics (wizard) — Dashboard](https://us.posthog.com/project/504831/dashboard/1823048)
-- [Tool usage over time (wizard)](https://us.posthog.com/project/504831/insights/wyG9grcv) — bar chart of `tool_opened` events broken down by tool name
-- [Converter format popularity (wizard)](https://us.posthog.com/project/504831/insights/D13TrFFg) — bar chart of `conversion_started` broken down by target format
-- [Image converter funnel (wizard)](https://us.posthog.com/project/504831/insights/nyAW84CO) — funnel: images_added → conversion_started → image_downloaded
-- [Tool process-to-download funnel (wizard)](https://us.posthog.com/project/504831/insights/S6ASj5az) — funnel: tool_opened → tool_run → tool_output_downloaded
-- [Downloads over time (wizard)](https://us.posthog.com/project/504831/insights/nA9EPUZ8) — line chart of all image and tool downloads over time
+- [Analytics basics (wizard) — Dashboard](https://us.posthog.com/project/504831/dashboard/1824927)
+- [Tool runs per day (wizard)](https://us.posthog.com/project/504831/insights/MQqYT5Vr) — daily `tool_run` trend over 30 days
+- [Downloads by tool (wizard)](https://us.posthog.com/project/504831/insights/pfJixbL1) — `tool_output_downloaded` broken down by `tool_name`
+- [Image conversion funnel (wizard)](https://us.posthog.com/project/504831/insights/GjTenXfx) — funnel: `images_added → conversion_started → image_downloaded`
+- [Hero CTA clicks (wizard)](https://us.posthog.com/project/504831/insights/aNDFoGst) — landing page CTA clicks by type
+- [Most opened tools (wizard)](https://us.posthog.com/project/504831/insights/23Fpv2ZA) — table ranking tools by `tool_opened` count
 
 ## Verify before merging
 

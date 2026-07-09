@@ -6,9 +6,9 @@ import { PostHogErrorBoundary, PostHogProvider } from '@posthog/react'
 import './index.css'
 import App from './App.tsx'
 
-posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN, {
-  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-  defaults: '2026-01-30',
+posthog.init('phc_vXZot4ZwCRjk4o95ThkwxjqWEPbSTeZ3CGuxiJNWkavk', {
+  api_host: 'https://t.opentools.fun',
+  defaults: '2026-05-30',
   capture_performance: {
     web_vitals: true,
     web_vitals_allowed_metrics: ['FCP', 'LCP', 'CLS', 'INP'],

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowUpRight,
@@ -8,6 +8,7 @@ import {
   MagnifyingGlass,
   ShieldCheck,
 } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import {
   categoriesForGroup,
@@ -44,10 +45,12 @@ function ToolCard({ tool, categoryIcon: Icon }: {
 }
 
 export default function ToolsDirectoryPage({ group }: { group: ToolGroup }) {
+  const posthog = usePostHog();
   const [query, setQuery] = useState('');
   const [openCategories, setOpenCategories] = useState<Set<string>>(() => new Set());
   const categories = useMemo(() => categoriesForGroup(group), [group]);
   const normalizedQuery = query.trim().toLowerCase();
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const groups = useMemo(() => categories.map((category) => ({
     category,
@@ -71,14 +74,33 @@ export default function ToolsDirectoryPage({ group }: { group: ToolGroup }) {
     setOpenCategories(new Set());
   }, [group]);
 
-  const toggleCategory = (categoryId: string) => {
+  const handleSearch = useCallback((value: string) => {
+    setQuery(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (value.trim()) {
+      searchDebounceRef.current = setTimeout(() => {
+        posthog?.capture('tool_search_performed', {
+          query: value.trim(),
+          tool_group: group,
+        });
+      }, 600);
+    }
+  }, [posthog, group]);
+
+  const toggleCategory = useCallback((categoryId: string) => {
     setOpenCategories((current) => {
       const next = new Set(current);
-      if (next.has(categoryId)) next.delete(categoryId);
-      else next.add(categoryId);
+      const isOpening = !next.has(categoryId);
+      if (isOpening) next.add(categoryId);
+      else next.delete(categoryId);
+      posthog?.capture('tool_category_toggled', {
+        category_id: categoryId,
+        action: isOpening ? 'open' : 'close',
+        tool_group: group,
+      });
       return next;
     });
-  };
+  }, [posthog, group]);
 
   return (
     <div className="page page--wide">
@@ -101,7 +123,7 @@ export default function ToolsDirectoryPage({ group }: { group: ToolGroup }) {
             <input
               className="searchbar__input"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => handleSearch(event.target.value)}
               placeholder={`Search ${title.toLowerCase()}…`}
               aria-label={`Search ${title.toLowerCase()}`}
             />

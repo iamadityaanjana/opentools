@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Textbox, UploadSimple, DownloadSimple, Trash, X, ArrowLeft, ShieldCheck, Warning,
 } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { Dropdown } from '../components/Dropdown';
 import { formatBytes } from '../lib/convert';
@@ -19,6 +20,7 @@ interface Item {
 let seq = 0;
 
 export default function BatchRenamePage() {
+  const posthog = usePostHog();
   const [items, setItems] = useState<Item[]>([]);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -94,10 +96,15 @@ export default function BatchRenamePage() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
+      posthog?.capture('batch_renamed_downloaded', {
+        file_count: pairs.length,
+        use_regex: useRegex,
+        case_mode: caseMode,
+      });
     } finally {
       setBusy(false);
     }
-  }, [pairs]);
+  }, [pairs, posthog, useRegex, caseMode]);
 
   const hasFiles = items.length > 0;
 

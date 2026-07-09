@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Swatches, Copy, Check, ArrowLeft, ShieldCheck } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import {
   type RGB,
@@ -15,12 +16,13 @@ import {
   contrastText,
 } from '../lib/color';
 
-function CopyChip({ label, value }: { label: string; value: string }) {
+function CopyChip({ label, value, onCopy }: { label: string; value: string; onCopy?: (label: string) => void }) {
   const [done, setDone] = useState(false);
   const copy = () => {
     navigator.clipboard.writeText(value);
     setDone(true);
     setTimeout(() => setDone(false), 1400);
+    onCopy?.(label);
   };
   return (
     <button className="copychip" onClick={copy} title={`Copy ${label}`}>
@@ -65,6 +67,7 @@ function NumField({
 }
 
 export default function RgbHexPage() {
+  const posthog = usePostHog();
   // RGB is the single source of truth; HEX & HSL derive from it.
   const [rgb, setRgb] = useState<RGB>({ r: 79, g: 70, b: 229 });
   const [hexInput, setHexInput] = useState<string>('#4F46E5');
@@ -98,6 +101,10 @@ export default function RgbHexPage() {
     },
     [hsl, applyRgb],
   );
+
+  const handleCopy = useCallback((format: string) => {
+    posthog?.capture('color_value_copied', { format });
+  }, [posthog]);
 
   return (
     <div className="page page--wide">
@@ -176,9 +183,9 @@ export default function RgbHexPage() {
           <div className="colorconv__group">
             <div className="colorconv__group-head">Copy</div>
             <div className="colorconv__copies">
-              <CopyChip label="HEX" value={hex} />
-              <CopyChip label="RGB" value={rgbToString(rgb)} />
-              <CopyChip label="HSL" value={hslToString(hsl)} />
+              <CopyChip label="HEX" value={hex} onCopy={handleCopy} />
+              <CopyChip label="RGB" value={rgbToString(rgb)} onCopy={handleCopy} />
+              <CopyChip label="HSL" value={hslToString(hsl)} onCopy={handleCopy} />
             </div>
           </div>
         </div>
