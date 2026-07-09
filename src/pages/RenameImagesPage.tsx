@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   TextAa, UploadSimple, DownloadSimple, Trash, X, ArrowLeft, ShieldCheck,
 } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { Dropdown } from '../components/Dropdown';
 import { formatBytes } from '../lib/convert';
@@ -20,6 +21,7 @@ type ExtMode = 'keep' | 'replace';
 let seq = 0;
 
 export default function RenameImagesPage() {
+  const posthog = usePostHog();
   const [items, setItems] = useState<Item[]>([]);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -70,10 +72,11 @@ export default function RenameImagesPage() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
+      posthog?.capture('images_renamed_downloaded', { file_count: pairs.length });
     } finally {
       setBusy(false);
     }
-  }, [pairs]);
+  }, [pairs, posthog]);
 
   useEffect(() => () => { /* nothing to revoke — we hold Files, not object URLs */ }, []);
 

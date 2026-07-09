@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Eyedropper, UploadSimple, Copy, Check, Trash, ArrowLeft, ShieldCheck,
 } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { decodeToImageData } from '../lib/decode';
 import {
@@ -50,6 +51,7 @@ function CopyChip({ label, value }: { label: string; value: string }) {
 let swatchSeq = 0;
 
 export default function ColorPickerPage() {
+  const posthog = usePostHog();
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgVersion, setImgVersion] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -177,9 +179,11 @@ export default function ColorPickerPage() {
     const hex = rgbToHex(rgb);
     setSwatches((prev) => {
       if (prev[0]?.hex === hex) return prev; // avoid immediate dupes
-      return [{ id: swatchSeq++, rgb, hex }, ...prev].slice(0, 24);
+      const next = [{ id: swatchSeq++, rgb, hex }, ...prev].slice(0, 24);
+      posthog?.capture('color_swatch_saved', { hex_value: hex, swatch_count: next.length });
+      return next;
     });
-  }, []);
+  }, [posthog]);
 
   const onClickCanvas = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = displayRef.current;

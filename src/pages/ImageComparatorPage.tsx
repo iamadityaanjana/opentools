@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowsHorizontal, Stack, Images, UploadSimple, ArrowLeft, ShieldCheck, Warning, X,
 } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { decodeToImageData } from '../lib/decode';
 
@@ -156,6 +157,7 @@ function Dropslot({
 }
 
 export default function ImageComparatorPage() {
+  const posthog = usePostHog();
   const [imgA, setImgA] = useState<Loaded | null>(null);
   const [imgB, setImgB] = useState<Loaded | null>(null);
   const [dragSlot, setDragSlot] = useState<Slot | null>(null);
@@ -232,9 +234,14 @@ export default function ImageComparatorPage() {
     canvasARef.current = canvasFromImageData(a);
     canvasBRef.current = canvasFromImageData(b);
     diffRef.current = computeDiff(a, b);
+    posthog?.capture('images_compared', {
+      img_a_dimensions: `${imgA.width}x${imgA.height}`,
+      img_b_dimensions: `${imgB.width}x${imgB.height}`,
+      sizes_match: imgA.width === imgB.width && imgA.height === imgB.height,
+    });
     // Trigger a re-render so metrics/preview update.
     setSliderPos((p) => p);
-  }, [imgA, imgB]);
+  }, [imgA, imgB]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const render = useCallback(() => {
     const disp = displayRef.current;

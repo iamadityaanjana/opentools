@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, ImageSquare, FilePdf, DotsThreeCircle } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { PlusGrid } from '../components/PlusGrid';
 import { BlinkingCursor } from '../components/Thinking';
 import { TopNav } from '../components/TopNav';
 import { TOTAL_COUNT, GROUP_HOME } from '../tools/catalog';
 
 export default function Landing() {
+  const posthog = usePostHog();
   return (
     <div className="page page--landing">
       <TopNav minimal />
@@ -36,10 +38,10 @@ export default function Landing() {
         </p>
 
         <div className="hero__cta">
-          <Link className="btn btn--dark btn--icon" to={GROUP_HOME.image}>
+          <Link className="btn btn--dark btn--icon" to={GROUP_HOME.image} onClick={() => posthog?.capture('hero_cta_clicked', { cta_type: 'image_tools' })}>
             <ImageSquare size={16} weight="fill" /> Image tools <ArrowRight size={15} weight="bold" />
           </Link>
-          <Link className="btn btn--icon" to={GROUP_HOME.pdf}>
+          <Link className="btn btn--icon" to={GROUP_HOME.pdf} onClick={() => posthog?.capture('hero_cta_clicked', { cta_type: 'pdf_tools' })}>
             <FilePdf size={16} weight="fill" /> PDF tools
           </Link>
           <button className="btn btn--soon btn--icon" disabled>

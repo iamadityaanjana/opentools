@@ -5,6 +5,7 @@ import {
   UploadSimple, DownloadSimple, Lightning, Trash, X, ArrowLeft, Copy, Check, ImageBroken, DotsSixVertical,
   ArrowClockwise, ArrowCounterClockwise, FlipHorizontal, FlipVertical,
 } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { CropStage, type PreviewSource } from '../components/CropStage';
 import { SplitEditor } from '../components/SplitEditor';
@@ -175,6 +176,7 @@ function ExifResult({ json }: { json: string }) {
 }
 
 export default function ToolRunner() {
+  const posthog = usePostHog();
   const { toolId } = useParams();
   const tool = toolId ? TOOL_BY_ID.get(toolId) : undefined;
   const op = tool?.op ? OPS[tool.op] : undefined;
@@ -243,9 +245,16 @@ export default function ToolRunner() {
 
   // Reflect the current tool in the browser tab title.
   useEffect(() => {
-    if (tool) document.title = `${tool.name} · toolbox`;
+    if (tool) {
+      document.title = `${tool.name} · toolbox`;
+      posthog?.capture('tool_opened', {
+        tool_id: tool.id,
+        tool_name: tool.name,
+        tool_category: tool.categoryId,
+      });
+    }
     return () => { document.title = 'toolbox'; };
-  }, [tool]);
+  }, [tool]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeJob = useMemo(() => jobs.find((j) => j.id === activeId) ?? jobs[0], [jobs, activeId]);
   const activeParams = isCombine ? comboParams : (activeJob ? paramsById[activeJob.id] ?? defaults : defaults);
@@ -440,6 +449,7 @@ export default function ToolRunner() {
           }
         } catch (e) {
           setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'failed', error: e instanceof Error ? e.message : String(e) } : j)));
+          posthog?.captureException(e instanceof Error ? e : new Error(String(e)), { tool_id: toolId });
         }
         await sleep(10);
         continue;
@@ -461,10 +471,11 @@ export default function ToolRunner() {
         }
       } catch (e) {
         setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'failed', error: e instanceof Error ? e.message : String(e) } : j)));
+        posthog?.captureException(e instanceof Error ? e : new Error(String(e)), { tool_id: toolId });
       }
       await sleep(10);
     }
-  }, [op, jobs, paramsById, defaults]);
+  }, [op, jobs, paramsById, defaults, posthog, toolId]);
 
   const runCombine = useCallback(async () => {
     if ((!op?.runCombine && !op?.runCombineFiles) || jobs.length === 0) return;
@@ -486,10 +497,21 @@ export default function ToolRunner() {
       }
     } catch (e) {
       setCombined({ status: 'failed', error: e instanceof Error ? e.message : String(e) });
+      posthog?.captureException(e instanceof Error ? e : new Error(String(e)), { tool_id: toolId });
     }
-  }, [op, jobs, comboParams, outFormat, quality, tool, isPdf]);
+  }, [op, jobs, comboParams, outFormat, quality, tool, isPdf, posthog, toolId]);
 
   const convert = isCombine ? runCombine : runEach;
+
+  const handleConvert = useCallback(() => {
+    posthog?.capture('tool_run', {
+      tool_id: toolId,
+      tool_name: tool?.name,
+      file_count: jobs.length,
+      is_combine_mode: isCombine,
+    });
+    convert();
+  }, [posthog, toolId, tool, jobs.length, isCombine, convert]);
 
   const downloadAll = useCallback(async () => {
     for (const j of jobs) {
@@ -549,7 +571,7 @@ export default function ToolRunner() {
 
   const actionsBlock = (
     <div className="controls__actions controls__actions--full">
-      <button className="btn btn--dark btn--icon" onClick={convert} disabled={!hasFiles || isWorking || (!isCombine && pendingCount === 0)}>
+      <button className="btn btn--dark btn--icon" onClick={handleConvert} disabled={!hasFiles || isWorking || (!isCombine && pendingCount === 0)}>
         <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `${verb}${pendingCount ? ` ${pendingCount}` : ''}`}
       </button>
       {!isCombine && jobs.filter((j) => j.result).length > 1 && (
@@ -750,7 +772,7 @@ export default function ToolRunner() {
             <div className="job__result">
               {combined.filename && /\.(png|jpe?g|webp|avif|gif|bmp)$/i.test(combined.filename) ? <img className="thumb thumb--lg" src={combined.url} alt="" /> : null}
               <span className="job__size job__size--out">{combined.blob && formatBytes(combined.blob.size)}</span>
-              <a className="btn btn--dark btn--icon" href={combined.url} download={combined.filename}><DownloadSimple size={15} weight="bold" /> Download</a>
+              <a className="btn btn--dark btn--icon" href={combined.url} download={combined.filename} onClick={() => posthog?.capture('tool_output_downloaded', { tool_id: toolId, tool_name: tool?.name, download_type: 'combine' })}><DownloadSimple size={15} weight="bold" /> Download</a>
             </div>
           )}
         </div>
@@ -777,7 +799,7 @@ export default function ToolRunner() {
                   <StatusBadge status={job.status} />
                   <div className="job__side-actions">
                     {job.result && !isTextTool && (
-                      <a className="btn btn--dark btn--icon btn--sm" href={job.result.url} download={job.result.filename}><DownloadSimple size={14} weight="bold" /> Download</a>
+                      <a className="btn btn--dark btn--icon btn--sm" href={job.result.url} download={job.result.filename} onClick={() => posthog?.capture('tool_output_downloaded', { tool_id: toolId, tool_name: tool?.name, download_type: 'single' })}><DownloadSimple size={14} weight="bold" /> Download</a>
                     )}
                     {job.status !== 'working' && <button className="job__remove" onClick={() => removeJob(job.id)} aria-label="Remove"><X size={14} /></button>}
                   </div>

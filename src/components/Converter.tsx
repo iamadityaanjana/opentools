@@ -9,6 +9,7 @@ import {
   X,
   ImageBroken,
 } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import {
   ENCODE_TARGETS,
   CATEGORY_LABELS,
@@ -53,6 +54,7 @@ function Thumb({ job }: { job: Job }) {
 }
 
 export default function Converter() {
+  const posthog = usePostHog();
   const [target, setTarget] = useState('webp');
   const [quality, setQuality] = useState(0.9);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -78,9 +80,10 @@ export default function Converter() {
         setJob(job.id, { status: 'success', result });
       } catch (e) {
         setJob(job.id, { status: 'failed', error: e instanceof Error ? e.message : String(e) });
+        posthog?.captureException(e instanceof Error ? e : new Error(String(e)), { target_format: targetId });
       }
     },
-    [setJob],
+    [setJob, posthog],
   );
 
   const addFiles = useCallback((files: FileList | File[]) => {
@@ -96,7 +99,8 @@ export default function Converter() {
     });
     // No automatic conversion — files just wait until the user clicks Convert.
     setJobs((prev) => [...newJobs, ...prev]);
-  }, []);
+    posthog?.capture('images_added', { file_count: newJobs.length, target_format: target });
+  }, [posthog, target]);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -113,10 +117,14 @@ export default function Converter() {
 
   // Explicit conversion: convert everything that hasn't succeeded yet.
   const convertAll = useCallback(() => {
-    jobs
-      .filter((j) => j.status === 'pending' || j.status === 'failed')
-      .forEach((j) => runJob(j, target, quality));
-  }, [jobs, runJob, target, quality]);
+    const pending = jobs.filter((j) => j.status === 'pending' || j.status === 'failed');
+    posthog?.capture('conversion_started', {
+      file_count: pending.length,
+      target_format: target,
+      quality: Math.round(quality * 100),
+    });
+    pending.forEach((j) => runJob(j, target, quality));
+  }, [jobs, runJob, target, quality, posthog]);
 
   const reconvertAll = useCallback(() => {
     jobs.forEach((j) => {
@@ -126,17 +134,18 @@ export default function Converter() {
   }, [jobs, runJob, target, quality, setJob]);
 
   const downloadAll = useCallback(async () => {
-    for (const j of jobs) {
-      if (!j.result) continue;
+    const completed = jobs.filter((j) => j.result);
+    posthog?.capture('image_downloaded', { file_count: completed.length, download_type: 'bulk', target_format: target });
+    for (const j of completed) {
       const a = document.createElement('a');
-      a.href = j.result.url;
-      a.download = j.result.filename;
+      a.href = j.result!.url;
+      a.download = j.result!.filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
       await sleep(150);
     }
-  }, [jobs]);
+  }, [jobs, posthog, target]);
 
   const removeJob = useCallback((id: string) => {
     setJobs((prev) => {
@@ -306,6 +315,7 @@ export default function Converter() {
                         className="btn btn--dark btn--icon btn--sm"
                         href={job.result.url}
                         download={job.result.filename}
+                        onClick={() => posthog?.capture('image_downloaded', { file_count: 1, download_type: 'single', source_format: job.sourceLabel.toLowerCase(), target_format: target })}
                       >
                         <DownloadSimple size={14} weight="bold" /> Download
                       </a>

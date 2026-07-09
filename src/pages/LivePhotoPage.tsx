@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   FilmStrip, UploadSimple, DownloadSimple, Trash, ShieldCheck, ImageSquare, VideoCamera,
 } from '@phosphor-icons/react';
+import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { Dropdown } from '../components/Dropdown';
 import { decodeToImageData } from '../lib/decode';
@@ -45,6 +46,7 @@ function triggerDownload(blob: Blob, name: string) {
 }
 
 export default function LivePhotoPage() {
+  const posthog = usePostHog();
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,7 +165,8 @@ export default function LivePhotoPage() {
     const type = stillFmt === 'png' ? 'image/png' : 'image/jpeg';
     const blob = await canvasToBlob(canvas, type, stillFmt === 'jpeg' ? 0.95 : undefined);
     triggerDownload(blob, `${baseName}-still.${stillFmt === 'png' ? 'png' : 'jpg'}`);
-  }, [baseName, stillFmt]);
+    posthog?.capture('live_photo_still_downloaded', { format: stillFmt });
+  }, [baseName, stillFmt, posthog]);
 
   const exportFrame = useCallback(async () => {
     const v = videoRef.current;
@@ -176,7 +179,8 @@ export default function LivePhotoPage() {
     const blob = await canvasToBlob(canvas, type, stillFmt === 'jpeg' ? 0.95 : undefined);
     const stamp = v.currentTime.toFixed(2).replace('.', 's');
     triggerDownload(blob, `${baseName}-frame-${stamp}.${stillFmt === 'png' ? 'png' : 'jpg'}`);
-  }, [baseName, stillFmt]);
+    posthog?.capture('live_photo_frame_exported', { format: stillFmt, timestamp_seconds: parseFloat(stamp) });
+  }, [baseName, stillFmt, posthog]);
 
   const loaded = hasStill || hasVideo;
 
