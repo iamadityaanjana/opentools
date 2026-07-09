@@ -1041,6 +1041,17 @@ a.megalink:hover {
 .tools-hero {
   margin: 40px 0 20px;
 }
+.directory-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: #2f6df6;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 .tools-title {
   font-family: var(--serif);
   font-size: 52px;
@@ -1114,6 +1125,7 @@ a.megalink:hover {
   padding: 7px 13px;
   border-radius: 999px;
   cursor: pointer;
+  text-decoration: none;
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .chip-btn:hover {
@@ -1132,7 +1144,7 @@ a.megalink:hover {
 .tools-groups {
   display: flex;
   flex-direction: column;
-  gap: 34px;
+  gap: 10px;
   margin-top: 12px;
 }
 .tgroup__title {
@@ -1142,6 +1154,53 @@ a.megalink:hover {
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 14px;
+}
+.tgroup {
+  scroll-margin-top: 72px;
+}
+.tgroup--accordion {
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.tgroup--accordion.is-open {
+  border-color: #cdd8f5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+.tgroup--accordion .tgroup__title {
+  margin: 0;
+}
+.tgroup__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tgroup__toggle:hover {
+  background: #faf9f6;
+}
+.tgroup__toggle .tgroup__count {
+  margin-left: 2px;
+}
+.tgroup__caret {
+  margin-left: auto;
+  color: var(--muted);
+  transition: transform 0.18s ease;
+}
+.tgroup--accordion.is-open .tgroup__caret {
+  transform: rotate(180deg);
+}
+.tgrid--accordion {
+  padding: 0 14px 14px;
 }
 .tgroup__emoji {
   font-size: 18px;

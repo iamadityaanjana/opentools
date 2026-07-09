@@ -319,7 +319,7 @@ export default function ImageComparatorPage() {
       <TopNav />
 
       <nav className="crumbs crumbs--sub">
-        <Link className="crumbs__link" to="/convert">Image tools</Link>
+        <Link className="crumbs__link" to="/image">Image tools</Link>
         <span className="crumbs__sep">/</span>
         <span className="crumbs__link">Miscellaneous</span>
         <span className="crumbs__sep">/</span>
@@ -439,7 +439,7 @@ export default function ImageComparatorPage() {
       )}
 
       <div className="colorconv__foot">
-        <Link className="btn btn--pill btn--icon" to="/convert"><ArrowLeft size={15} weight="bold" /> All image tools</Link>
+        <Link className="btn btn--pill btn--icon" to="/image"><ArrowLeft size={15} weight="bold" /> All image tools</Link>
       </div>
 
       <footer className="footer"><span>Part of opentools · your files never leave this device.</span></footer>

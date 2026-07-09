@@ -189,7 +189,7 @@ export default function LivePhotoPage() {
       <TopNav />
 
       <nav className="crumbs crumbs--sub">
-        <Link className="crumbs__link" to="/convert">Image tools</Link>
+        <Link className="crumbs__link" to="/image">Image tools</Link>
         <span className="crumbs__sep">/</span>
         <span className="crumbs__link">Mobile Tasks</span>
         <span className="crumbs__sep">/</span>

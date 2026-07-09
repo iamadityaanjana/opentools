@@ -12,11 +12,28 @@ const RenameImagesPage = lazy(() => import('./pages/RenameImagesPage'));
 const BatchRenamePage = lazy(() => import('./pages/BatchRenamePage'));
 const LivePhotoPage = lazy(() => import('./pages/LivePhotoPage'));
 const ImageComparatorPage = lazy(() => import('./pages/ImageComparatorPage'));
+const ToolsDirectoryPage = lazy(() => import('./pages/ToolsDirectoryPage'));
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route
+        path="/image"
+        element={
+          <Suspense fallback={<div className="page page--wide"><div className="loading-panel"><DotsThinking label="Loading image tools" /></div></div>}>
+            <ToolsDirectoryPage group="image" />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/pdf"
+        element={
+          <Suspense fallback={<div className="page page--wide"><div className="loading-panel"><DotsThinking label="Loading PDF tools" /></div></div>}>
+            <ToolsDirectoryPage group="pdf" />
+          </Suspense>
+        }
+      />
       <Route path="/convert" element={<ConvertPage />} />
       {/* Interactive color tools have dedicated pages (not the generic runner). */}
       <Route
@@ -78,10 +95,7 @@ export default function App() {
           </Suspense>
         }
       />
-      {/* Legacy directory routes now redirect to flagship tools. */}
-      <Route path="/image" element={<Navigate to="/convert" replace />} />
-      <Route path="/pdf" element={<Navigate to="/tools/images-to-pdf" replace />} />
-      <Route path="/tools" element={<Navigate to="/convert" replace />} />
+      <Route path="/tools" element={<Navigate to="/image" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

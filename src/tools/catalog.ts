@@ -61,10 +61,10 @@ export const CATEGORIES: ToolCategory[] = [
 
 export const CATEGORY_BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
 
-// Each group opens directly on its flagship tool (no directory/listing page).
+// Group landing pages list their tools by category.
 export const GROUP_HOME: Record<ToolGroup, string> = {
-  image: '/convert',
-  pdf: '/tools/images-to-pdf',
+  image: '/image',
+  pdf: '/pdf',
 };
 export const GROUP_LABEL: Record<ToolGroup, string> = {
   image: 'Image tools',
