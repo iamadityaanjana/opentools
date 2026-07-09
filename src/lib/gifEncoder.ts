@@ -33,7 +33,9 @@ function medianCut(rgb: Uint8Array, maxColors: number): number[][] {
       const range = Math.max(b.rmax - b.rmin, b.gmax - b.gmin, b.bmax - b.bmin);
       if (range > targetRange) { targetRange = range; target = i; }
     }
-    if (target === -1) break;
+    // Stop once every remaining box is a single flat color — splitting further
+    // would only duplicate palette entries (wasteful, and bloats GIF size).
+    if (target === -1 || targetRange <= 0) break;
 
     const box = boxes[target];
     const rRange = box.rmax - box.rmin;

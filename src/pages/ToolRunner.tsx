@@ -25,7 +25,7 @@ interface Job {
   error?: string;
 }
 
-const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount']);
+const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf']);
 const PREVIEW_MAX = 900;
 
 let idSeq = 0;
@@ -143,7 +143,13 @@ export default function ToolRunner() {
   const isFlip = tool?.op === 'flip';
   const isPdf = tool?.op === 'imagesToPdf';
   const isGif = tool?.op === 'gifToImages';
-  const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op) && !isGif;
+  // Tools that take a raw GIF file and show a decoded frame strip instead of a live canvas preview.
+  const isGifInput = isGif || tool?.op === 'gifResizer' || tool?.op === 'gifOptimizer';
+  // Combine tool that produces an animated GIF (export is animated; no cheap live canvas).
+  const isGifCombine = tool?.op === 'imagesToGif';
+  // Tools that take a raw PDF file (rendered pages / extracted images -> ZIP).
+  const isPdfInput = tool?.op === 'pdfToImages' || tool?.op === 'extractImagesFromPdf';
+  const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op) && !isGifInput;
 
   const activeJob = useMemo(() => jobs.find((j) => j.id === activeId) ?? jobs[0], [jobs, activeId]);
   const activeParams = isCombine ? comboParams : (activeJob ? paramsById[activeJob.id] ?? defaults : defaults);
@@ -230,7 +236,7 @@ export default function ToolRunner() {
     const t = setTimeout(async () => {
       try {
         if (isCombine) {
-          if (isPdf || previewSrcs.length === 0 || !op?.runCombine) return;
+          if (isPdf || isGifCombine || previewSrcs.length === 0 || !op?.runCombine) return;
           setPreviewBusy(true);
           const res = await op.runCombine(previewSrcs.map((s) => s.canvas), comboParams);
           if (!cancelled && res.canvas) setPreviewUrl(res.canvas.toDataURL('image/png'));
@@ -245,11 +251,11 @@ export default function ToolRunner() {
       }
     }, 120);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isCombine, isPdf, op]);
+  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isCombine, isPdf, isGifCombine, op]);
 
   // GIF frame-strip preview: decode the active GIF into small thumbnails.
   useEffect(() => {
-    if (!isGif || !activeJob) { setGifFrames([]); return; }
+    if (!isGifInput || !activeJob) { setGifFrames([]); return; }
     let cancelled = false;
     const jobFile = activeJob.file;
     setGifBusy(true);
@@ -281,7 +287,7 @@ export default function ToolRunner() {
       }
     })();
     return () => { cancelled = true; };
-  }, [isGif, activeJob]);
+  }, [isGifInput, activeJob]);
 
   // ---- param setters ----
   const setParam = useCallback((key: string, val: string | number | boolean) => {
@@ -326,7 +332,8 @@ export default function ToolRunner() {
           const base = job.file.name.replace(/\.[^.]+$/, '') || 'gif';
           if (res.blob) {
             const blob = res.blob;
-            setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'success', result: { blob, url: URL.createObjectURL(blob), filename: `${base}-frames.zip` } } : j)));
+            const filename = res.filename ?? `${base}-frames.zip`;
+            setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'success', result: { blob, url: URL.createObjectURL(blob), filename } } : j)));
           }
         } catch (e) {
           setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'failed', error: e instanceof Error ? e.message : String(e) } : j)));
@@ -363,7 +370,8 @@ export default function ToolRunner() {
       const canvases = await Promise.all(jobs.map((j) => fileToCanvas(j.file)));
       const res = await op.runCombine(canvases, comboParams);
       if (res.blob) {
-        setCombined({ status: 'success', blob: res.blob, url: URL.createObjectURL(res.blob), filename: `${tool!.id}.${isPdf ? 'pdf' : 'png'}` });
+        const filename = res.filename ?? `${tool!.id}.${isPdf ? 'pdf' : 'png'}`;
+        setCombined({ status: 'success', blob: res.blob, url: URL.createObjectURL(res.blob), filename });
       } else if (res.canvas) {
         const blob = await canvasToBlob(res.canvas, outFormat, quality);
         const ext = FORMAT_BY_ID.get(outFormat)?.ext ?? 'png';
@@ -471,11 +479,11 @@ export default function ToolRunner() {
         onClick={() => inputRef.current?.click()}
         role="button" tabIndex={0}
       >
-        <input ref={inputRef} type="file" multiple accept="image/*,.heic,.heif,.tif,.tiff,.avif,.svg,.ico,.jp2" hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
+        <input ref={inputRef} type="file" multiple accept={isPdfInput ? 'application/pdf,.pdf' : 'image/*,.heic,.heif,.tif,.tiff,.avif,.svg,.ico,.jp2'} hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
         <div className="dropzone__inner">
           <UploadSimple size={hasFiles ? 22 : 34} weight="light" className="dropzone__icon" />
-          <p className="dropzone__title">{hasFiles ? 'Add more images' : <>Drop image{isCombine ? 's' : '(s)'} here <span className="muted">or click to browse</span></>}</p>
-          {!hasFiles && <p className="dropzone__hint">{isCombine ? 'All images combine into one output.' : 'Editor & live preview appear below once you add an image.'}</p>}
+          <p className="dropzone__title">{hasFiles ? (isPdfInput ? 'Add more PDFs' : 'Add more images') : isPdfInput ? <>Drop a PDF here <span className="muted">or click to browse</span></> : <>Drop image{isCombine ? 's' : '(s)'} here <span className="muted">or click to browse</span></>}</p>
+          {!hasFiles && <p className="dropzone__hint">{isPdfInput ? 'Runs fully on-device — your PDF never leaves this browser.' : isCombine ? 'All images combine into one output.' : 'Editor & live preview appear below once you add an image.'}</p>}
         </div>
       </div>
 
@@ -499,13 +507,13 @@ export default function ToolRunner() {
             </div>
           )}
 
-          <div className={`editor2__body ${previewable || isGif ? 'editor2__body--split' : ''}`}>
+          <div className={`editor2__body ${previewable || isGifInput ? 'editor2__body--split' : ''}`}>
             {/* GIF frame-strip preview */}
-            {isGif && (
+            {isGifInput && (
               <div className="editor__preview">
                 <div className="preview-head">
                   <span className="preview-head__label">Frames {gifBusy && <span className="preview-dot" />}</span>
-                  <span className="preview-head__note">{gifFrames.length ? `${gifFrames.length} frame${gifFrames.length === 1 ? '' : 's'} · exported as ZIP` : 'decoding…'}</span>
+                  <span className="preview-head__note">{gifFrames.length ? `${gifFrames.length} frame${gifFrames.length === 1 ? '' : 's'} · ${isGif ? 'exported as ZIP' : 'timing & loop preserved'}` : 'decoding…'}</span>
                 </div>
                 {gifBusy && gifFrames.length === 0 ? (
                   <div className="preview-empty">Decoding frames…</div>
@@ -563,6 +571,8 @@ export default function ToolRunner() {
                     </div>
                     {isPdf ? (
                       <p className="dropzone__hint">Drag thumbnails to set page order, then Generate the PDF.</p>
+                    ) : isGifCombine ? (
+                      <p className="dropzone__hint">Drag thumbnails to set frame order, then Generate. The export is an animated GIF.</p>
                     ) : previewUrl ? (
                       <img className="preview-img" src={previewUrl} alt="preview" />
                     ) : null}

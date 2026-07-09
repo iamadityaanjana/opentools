@@ -215,6 +215,8 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'invert-colors': { op: 'invert' },
   // PDF
   'images-to-pdf': { op: 'imagesToPdf', mode: 'combine' },
+  'pdf-to-images': { op: 'pdfToImages' },
+  'extract-images-from-pdf': { op: 'extractImagesFromPdf' },
   // Organization
   'merge-images': { op: 'merge', mode: 'combine' },
   'create-collage': { op: 'collage', mode: 'combine' },

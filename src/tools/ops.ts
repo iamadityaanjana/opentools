@@ -69,7 +69,7 @@ function drawFit(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, W: numbe
 function scaleImageData(img: ImageData, sw: number, sh: number, W: number, H: number): ImageData {
   const [srcC, srcCtx] = make(sw, sh);
   srcCtx.putImageData(img, 0, 0);
-  const [dstC, dstCtx] = make(W, H);
+  const [, dstCtx] = make(W, H);
   dstCtx.imageSmoothingQuality = 'high';
   dstCtx.drawImage(srcC, 0, 0, W, H);
   return dstCtx.getImageData(0, 0, W, H);
@@ -486,6 +486,77 @@ export const OPS: Record<string, ImageOp> = {
     },
   },
 
+  // ---- PDF (special file input: render/extract -> ZIP) ----
+  // Render each PDF page to a raster image at a chosen DPI/format.
+  pdfToImages: {
+    controls: [
+      { key: 'format', label: 'Page format', type: 'select', def: 'png', options: [
+        { value: 'png', label: 'PNG' }, { value: 'jpeg', label: 'JPEG' }, { value: 'webp', label: 'WebP' },
+      ] },
+      { key: 'quality', label: 'Quality (JPEG/WebP)', type: 'range', min: 10, max: 100, step: 5, def: 90, suffix: '%' },
+      { key: 'dpi', label: 'Resolution', type: 'range', min: 72, max: 300, step: 6, def: 150, suffix: ' DPI' },
+      { key: 'range', label: 'Page range (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' },
+    ],
+    runFile: async (file, p) => {
+      const [{ renderPdfPages }, { encodeImageData }, JSZip] = await Promise.all([
+        import('../lib/pdf'),
+        import('../lib/encode'),
+        import('jszip').then((m) => m.default),
+      ]);
+      const fmt = String(p.format || 'png');
+      const ext = fmt === 'jpeg' ? 'jpg' : fmt;
+      const q = Number(p.quality ?? 90) / 100;
+      const pages = await renderPdfPages(file, { dpi: Number(p.dpi ?? 150), range: String(p.range ?? '') });
+      if (pages.length === 0) throw new Error('No pages could be rendered from this PDF.');
+      const base = file.name.replace(/\.[^.]+$/, '') || 'pdf';
+      const pad = Math.max(3, String(Math.max(...pages.map((pg) => pg.index + 1))).length);
+
+      if (pages.length === 1) {
+        const pg = pages[0];
+        const blob = await encodeImageData({ imageData: pg.imageData, width: pg.width, height: pg.height }, fmt, { quality: q });
+        return { blob, filename: `${base}-page-${String(pg.index + 1).padStart(pad, '0')}.${ext}` };
+      }
+
+      const zip = new JSZip();
+      for (const pg of pages) {
+        const blob = await encodeImageData({ imageData: pg.imageData, width: pg.width, height: pg.height }, fmt, { quality: q });
+        zip.file(`${base}-page-${String(pg.index + 1).padStart(pad, '0')}.${ext}`, blob);
+      }
+      return { blob: await zip.generateAsync({ type: 'blob' }), filename: `${base}-pages.zip` };
+    },
+  },
+
+  // Pull the embedded raster image XObjects out of a PDF (not page renders).
+  extractImagesFromPdf: {
+    controls: [
+      { key: 'format', label: 'Image format', type: 'select', def: 'png', options: [
+        { value: 'png', label: 'PNG' }, { value: 'jpeg', label: 'JPEG' }, { value: 'webp', label: 'WebP' },
+      ] },
+      { key: 'quality', label: 'Quality (JPEG/WebP)', type: 'range', min: 10, max: 100, step: 5, def: 90, suffix: '%' },
+    ],
+    runFile: async (file, p) => {
+      const [{ extractPdfImages }, { encodeImageData }, JSZip] = await Promise.all([
+        import('../lib/pdf'),
+        import('../lib/encode'),
+        import('jszip').then((m) => m.default),
+      ]);
+      const images = await extractPdfImages(file);
+      if (images.length === 0) throw new Error('No embedded images found in this PDF.');
+      const fmt = String(p.format || 'png');
+      const ext = fmt === 'jpeg' ? 'jpg' : fmt;
+      const q = Number(p.quality ?? 90) / 100;
+      const base = file.name.replace(/\.[^.]+$/, '') || 'pdf';
+      const pad = Math.max(3, String(images.length).length);
+      const zip = new JSZip();
+      for (let i = 0; i < images.length; i++) {
+        const im = images[i];
+        const blob = await encodeImageData({ imageData: im.imageData, width: im.width, height: im.height }, fmt, { quality: q });
+        zip.file(`${base}-image-${String(i + 1).padStart(pad, '0')}.${ext}`, blob);
+      }
+      return { blob: await zip.generateAsync({ type: 'blob' }), filename: `${base}-images.zip` };
+    },
+  },
+
   // ---- GIF (special file input: decode all frames -> ZIP) ----
   gifToImages: {
     controls: [
@@ -549,7 +620,7 @@ export const OPS: Record<string, ImageOp> = {
       const fit = String(p.fit || 'contain');
       const delay = Number(p.delay ?? 150);
       const frames = srcs.map((s) => {
-        const [c, ctx] = make(W, H);
+        const [, ctx] = make(W, H);
         if (fit === 'contain') { ctx.fillStyle = String(p.bg); ctx.fillRect(0, 0, W, H); }
         drawFit(ctx, s, W, H, fit);
         const img = ctx.getImageData(0, 0, W, H);
