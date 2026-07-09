@@ -86,31 +86,45 @@ function OtherMenu() {
   );
 }
 
-/** Shared top navigation: common categories inline + Other tools + PDF. */
-export function TopNav() {
+function BookCall() {
+  return (
+    <a
+      className="btn btn--pill"
+      href="http://cal.com/adityaanjana"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Book a call
+    </a>
+  );
+}
+
+/**
+ * Shared top navigation.
+ * - `minimal` (landing): logo + Book a call only — no tool menus.
+ * - default (tool pages): category dropdowns + PDF + Other tools.
+ */
+export function TopNav({ minimal = false }: { minimal?: boolean }) {
   return (
     <header className="topbar topbar--nav">
       <Link className="logo logo--link" to="/">
         toolbox…
       </Link>
 
-      <div className="nav">
-        {PRIMARY_NAV_CATEGORIES.map((id) => (
-          <CategoryMenu key={id} catId={id} />
-        ))}
-        <OtherMenu />
-        <Link className="nav__link" to="/pdf">
-          PDF
-        </Link>
-        <a
-          className="btn btn--pill"
-          href="http://cal.com/adityaanjana"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Book a call
-        </a>
-      </div>
+      {minimal ? (
+        <div className="nav">
+          <BookCall />
+        </div>
+      ) : (
+        <div className="nav">
+          {PRIMARY_NAV_CATEGORIES.map((id) => (
+            <CategoryMenu key={id} catId={id} />
+          ))}
+          <CategoryMenu catId="pdf" />
+          <OtherMenu />
+          <BookCall />
+        </div>
+      )}
     </header>
   );
 }

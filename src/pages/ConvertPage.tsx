@@ -1,5 +1,4 @@
 import { lazy, Suspense } from 'react';
-import { Link } from 'react-router-dom';
 import { ImageSquare, ShieldCheck } from '@phosphor-icons/react';
 import { DotsThinking } from '../components/Thinking';
 import { TopNav } from '../components/TopNav';
@@ -12,7 +11,7 @@ export default function ConvertPage() {
       <TopNav />
 
       <nav className="crumbs crumbs--sub">
-        <Link className="crumbs__link" to="/image">Image tools</Link>
+        <span className="crumbs__link">Image tools</span>
         <span className="crumbs__sep">/</span>
         <span className="crumbs__current">Image converter</span>
       </nav>

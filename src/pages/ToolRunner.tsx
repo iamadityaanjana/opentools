@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  UploadSimple, DownloadSimple, Lightning, Trash, X, ArrowLeft, Copy, Check, ImageBroken,
+  UploadSimple, DownloadSimple, Lightning, Trash, X, ArrowLeft, Copy, Check, ImageBroken, DotsSixVertical,
 } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
-import { TOOL_BY_ID, CATEGORY_BY_ID } from '../tools/catalog';
+import { CropStage, type PreviewSource } from '../components/CropStage';
+import { TOOL_BY_ID, CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL } from '../tools/catalog';
 import { OPS, type Control, type Params, type OpResult } from '../tools/ops';
 import { FORMAT_BY_ID } from '../formats/registry';
 import { decodeToImageData } from '../lib/decode';
@@ -22,6 +23,10 @@ interface Job {
   result?: { url: string; blob: Blob; filename: string };
   error?: string;
 }
+
+// Tools that produce no visual output → no live preview.
+const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount']);
+const PREVIEW_MAX = 900;
 
 let idSeq = 0;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -118,7 +123,19 @@ export default function ToolRunner() {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // ---- Preview state ----
+  const [previewSrc, setPreviewSrc] = useState<PreviewSource | null>(null);
+  const [previewSrcs, setPreviewSrcs] = useState<PreviewSource[]>([]);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const cacheRef = useRef<Map<string, PreviewSource>>(new Map());
+  const initedRef = useRef<string>('');
+  const reorderFrom = useRef<number>(-1);
+
   const isCombine = tool?.mode === 'combine';
+  const isCrop = tool?.op === 'crop';
+  const isPdf = tool?.op === 'imagesToPdf';
+  const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op);
 
   const outFormat = useMemo(() => {
     if (!op) return 'png';
@@ -128,6 +145,24 @@ export default function ToolRunner() {
   }, [op, params.format]);
 
   const setP = useCallback((k: string, v: string | number | boolean) => setParams((prev) => ({ ...prev, [k]: v })), []);
+  const patchP = useCallback((patch: Partial<Params>) => setParams((prev) => ({ ...prev, ...patch } as Params)), []);
+
+  const getPreviewSource = useCallback(async (file: File): Promise<PreviewSource> => {
+    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    const cached = cacheRef.current.get(key);
+    if (cached) return cached;
+    const full = await fileToCanvas(file);
+    const s = Math.min(1, PREVIEW_MAX / Math.max(full.width, full.height));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(full.width * s));
+    c.height = Math.max(1, Math.round(full.height * s));
+    const ctx = c.getContext('2d')!;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(full, 0, 0, c.width, c.height);
+    const src: PreviewSource = { canvas: c, fullW: full.width, fullH: full.height };
+    cacheRef.current.set(key, src);
+    return src;
+  }, []);
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const arr = Array.from(files);
@@ -138,6 +173,64 @@ export default function ToolRunner() {
   const onDrop = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }, [addFiles]);
 
   const quality = (Number(params.quality ?? 90)) / 100;
+
+  // ---- Build preview sources when files/order change ----
+  useEffect(() => {
+    if (!previewable) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (isCombine) {
+          const srcs = await Promise.all(jobs.map((j) => getPreviewSource(j.file)));
+          if (!cancelled) setPreviewSrcs(srcs);
+        } else if (jobs.length > 0) {
+          const src = await getPreviewSource(jobs[jobs.length - 1].file);
+          if (!cancelled) setPreviewSrc(src);
+        } else {
+          setPreviewSrc(null);
+          setPreviewUrl(null);
+        }
+      } catch { /* preview is best-effort */ }
+    })();
+    return () => { cancelled = true; };
+  }, [jobs, isCombine, previewable, getPreviewSource]);
+
+  // ---- Auto-init dimension params from the loaded image ----
+  useEffect(() => {
+    if (!previewSrc || !tool) return;
+    const key = `${tool.op}:${previewSrc.fullW}x${previewSrc.fullH}`;
+    if (initedRef.current === key) return;
+    initedRef.current = key;
+    if (isCrop) {
+      patchP({ x: Math.round(previewSrc.fullW * 0.1), y: Math.round(previewSrc.fullH * 0.1), w: Math.round(previewSrc.fullW * 0.8), h: Math.round(previewSrc.fullH * 0.8) });
+    } else if (tool.op === 'resize' || tool.op === 'canvas-size') {
+      patchP({ width: previewSrc.fullW, height: previewSrc.fullH });
+    }
+  }, [previewSrc, tool, isCrop, patchP]);
+
+  // ---- Live result preview (debounced) ----
+  useEffect(() => {
+    if (!previewable || isCrop) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        if (isCombine) {
+          if (isPdf || previewSrcs.length === 0 || !op?.runCombine) return;
+          setPreviewBusy(true);
+          const res = await op.runCombine(previewSrcs.map((s) => s.canvas), params);
+          if (!cancelled && res.canvas) setPreviewUrl(res.canvas.toDataURL('image/png'));
+        } else {
+          if (!previewSrc || !op?.run) return;
+          setPreviewBusy(true);
+          const res = await op.run(previewSrc.canvas, params);
+          if (!cancelled && res.canvas) setPreviewUrl(res.canvas.toDataURL('image/png'));
+        }
+      } catch { /* ignore */ } finally {
+        if (!cancelled) setPreviewBusy(false);
+      }
+    }, 120);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [params, previewSrc, previewSrcs, previewable, isCrop, isCombine, isPdf, op]);
 
   const runEach = useCallback(async () => {
     if (!op?.run) return;
@@ -171,7 +264,7 @@ export default function ToolRunner() {
       const canvases = await Promise.all(jobs.map((j) => fileToCanvas(j.file)));
       const res = await op.runCombine(canvases, params);
       if (res.blob) {
-        setCombined({ status: 'success', blob: res.blob, url: URL.createObjectURL(res.blob), filename: `${tool!.id}.${tool!.op === 'imagesToPdf' ? 'pdf' : 'png'}` });
+        setCombined({ status: 'success', blob: res.blob, url: URL.createObjectURL(res.blob), filename: `${tool!.id}.${isPdf ? 'pdf' : 'png'}` });
       } else if (res.canvas) {
         const blob = await canvasToBlob(res.canvas, outFormat, quality);
         const ext = FORMAT_BY_ID.get(outFormat)?.ext ?? 'png';
@@ -180,7 +273,7 @@ export default function ToolRunner() {
     } catch (e) {
       setCombined({ status: 'failed', error: e instanceof Error ? e.message : String(e) });
     }
-  }, [op, jobs, params, outFormat, quality, tool]);
+  }, [op, jobs, params, outFormat, quality, tool, isPdf]);
 
   const convert = isCombine ? runCombine : runEach;
 
@@ -193,8 +286,20 @@ export default function ToolRunner() {
 
   const clearAll = useCallback(() => {
     jobs.forEach((j) => { URL.revokeObjectURL(j.previewUrl); if (j.result) URL.revokeObjectURL(j.result.url); });
-    setJobs([]); setCombined(null);
+    setJobs([]); setCombined(null); setPreviewUrl(null); setPreviewSrc(null); setPreviewSrcs([]); initedRef.current = '';
   }, [jobs]);
+
+  const reorder = useCallback((to: number) => {
+    const from = reorderFrom.current;
+    if (from < 0 || from === to) return;
+    setJobs((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    reorderFrom.current = -1;
+  }, []);
 
   if (!tool || !op) {
     return (
@@ -211,15 +316,14 @@ export default function ToolRunner() {
   const isSwatchTool = tool.op === 'colorPalette';
   const pendingCount = jobs.filter((j) => j.status === 'pending').length;
   const isWorking = jobs.some((j) => j.status === 'working') || combined?.status === 'working';
+  const hasFiles = jobs.length > 0;
 
   return (
     <div className="page page--wide">
       <TopNav />
 
       <nav className="crumbs crumbs--sub">
-        <Link className="crumbs__link" to={`/${cat.group}`}>
-          {cat.group === 'pdf' ? 'PDF tools' : 'Image tools'}
-        </Link>
+        <Link className="crumbs__link" to={GROUP_HOME[cat.group]}>{GROUP_LABEL[cat.group]}</Link>
         <span className="crumbs__sep">/</span>
         <span className="crumbs__link">{cat.label}</span>
         <span className="crumbs__sep">/</span>
@@ -230,46 +334,88 @@ export default function ToolRunner() {
         <div className="tool-hero__icon"><Icon size={26} weight="fill" /></div>
         <div>
           <h1 className="tool-title">{tool.name}</h1>
-          <p className="tool-desc">
-            {tool.blurb ?? `${isCombine ? 'Combine your images' : 'Apply this tool to one or many images'} — runs fully on-device.`}
-          </p>
+          <p className="tool-desc">{tool.blurb ?? `${isCombine ? 'Combine your images' : 'Apply this tool to one or many images'} — runs fully on-device.`}</p>
         </div>
-        <Link className="btn btn--pill btn--icon" to={`/${cat.group}`}><ArrowLeft size={15} weight="bold" /> {cat.group === 'pdf' ? 'PDF tools' : 'Image tools'}</Link>
+        <Link className="btn btn--pill btn--icon" to={GROUP_HOME[cat.group]}><ArrowLeft size={15} weight="bold" /> {GROUP_LABEL[cat.group]}</Link>
       </div>
 
-      <div className="panel">
-        {op.controls.length > 0 && (
-          <div className="converter__controls">
-            {op.controls.map((c) => (
-              <ControlField key={c.key} ctrl={c} value={params[c.key]} onChange={(v) => setP(c.key, v)} />
-            ))}
-          </div>
-        )}
-        <div className="controls__actions controls__actions--full">
-          <button className="btn btn--dark btn--icon" onClick={convert} disabled={jobs.length === 0 || isWorking || (!isCombine && pendingCount === 0)}>
-            <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `Convert${pendingCount ? ` ${pendingCount}` : ''}`}
-          </button>
-          {!isCombine && jobs.filter((j) => j.result).length > 1 && (
-            <button className="btn btn--icon" onClick={downloadAll} disabled={isWorking}><DownloadSimple size={15} weight="bold" /> All</button>
+      <div className={`editor ${previewable && hasFiles ? 'editor--split' : ''}`}>
+        <div className="panel editor__side">
+          {op.controls.length > 0 && (
+            <div className="converter__controls converter__controls--stack">
+              {op.controls.map((c) => (
+                <ControlField key={c.key} ctrl={c} value={params[c.key]} onChange={(v) => setP(c.key, v)} />
+              ))}
+            </div>
           )}
-          {jobs.length > 0 && <button className="btn btn--ghost btn--icon" onClick={clearAll} disabled={isWorking}><Trash size={15} /> Clear</button>}
+          <div className="controls__actions controls__actions--full">
+            <button className="btn btn--dark btn--icon" onClick={convert} disabled={!hasFiles || isWorking || (!isCombine && pendingCount === 0)}>
+              <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `Convert${pendingCount ? ` ${pendingCount}` : ''}`}
+            </button>
+            {!isCombine && jobs.filter((j) => j.result).length > 1 && (
+              <button className="btn btn--icon" onClick={downloadAll} disabled={isWorking}><DownloadSimple size={15} weight="bold" /> All</button>
+            )}
+            {hasFiles && <button className="btn btn--ghost btn--icon" onClick={clearAll} disabled={isWorking}><Trash size={15} /> Clear</button>}
+          </div>
+
+          <div
+            className={`dropzone ${dragging ? 'dropzone--active' : ''} ${hasFiles ? 'dropzone--compact' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+            onClick={() => inputRef.current?.click()}
+            role="button" tabIndex={0}
+          >
+            <input ref={inputRef} type="file" multiple accept="image/*,.heic,.heif,.tif,.tiff,.avif,.svg,.ico,.jp2" hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
+            <div className="dropzone__inner">
+              <UploadSimple size={hasFiles ? 22 : 34} weight="light" className="dropzone__icon" />
+              <p className="dropzone__title">{hasFiles ? 'Add more' : <>Drop image{isCombine ? 's' : '(s)'} here <span className="muted">or click to browse</span></>}</p>
+              {!hasFiles && <p className="dropzone__hint">{isCombine ? 'All images combine into one output.' : 'Preview updates live; conversion runs at full resolution.'}</p>}
+            </div>
+          </div>
         </div>
 
-        <div
-          className={`dropzone ${dragging ? 'dropzone--active' : ''}`}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-          onClick={() => inputRef.current?.click()}
-          role="button" tabIndex={0}
-        >
-          <input ref={inputRef} type="file" multiple accept="image/*,.heic,.heif,.tif,.tiff,.avif,.svg,.ico,.jp2" hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
-          <div className="dropzone__inner">
-            <UploadSimple size={34} weight="light" className="dropzone__icon" />
-            <p className="dropzone__title">Drop image{isCombine ? 's' : '(s)'} here <span className="muted">or click to browse</span></p>
-            <p className="dropzone__hint">{isCombine ? 'All images combine into one output on Generate.' : 'Runs only when you press the button.'}</p>
+        {previewable && hasFiles && (
+          <div className="editor__preview">
+            <div className="preview-head">
+              <span className="preview-head__label">Live preview {previewBusy && <span className="preview-dot" />}</span>
+              <span className="preview-head__note">reduced-res preview · full quality on convert</span>
+            </div>
+
+            {isCrop && previewSrc ? (
+              <CropStage src={previewSrc} params={params} setParam={patchP} />
+            ) : isCombine ? (
+              <div className="combine-editor">
+                <div className="reorder" onDragOver={(e) => e.preventDefault()}>
+                  {jobs.map((j, i) => (
+                    <div
+                      key={j.id}
+                      className="reorder__item"
+                      draggable
+                      onDragStart={() => { reorderFrom.current = i; }}
+                      onDrop={() => reorder(i)}
+                      title="Drag to reorder"
+                    >
+                      <DotsSixVertical size={14} className="reorder__grip" />
+                      <img className="reorder__thumb" src={j.previewUrl} alt="" />
+                      <span className="reorder__idx">{i + 1}</span>
+                      <button className="job__remove" onClick={() => setJobs((prev) => prev.filter((x) => x.id !== j.id))} aria-label="Remove"><X size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+                {isPdf ? (
+                  <p className="dropzone__hint">Drag thumbnails to set page order, then Generate the PDF.</p>
+                ) : previewUrl ? (
+                  <img className="preview-img" src={previewUrl} alt="preview" />
+                ) : null}
+              </div>
+            ) : previewUrl ? (
+              <img className="preview-img" src={previewUrl} alt="preview" />
+            ) : (
+              <div className="preview-empty">Rendering…</div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
       {isCombine && combined && (

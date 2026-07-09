@@ -61,11 +61,15 @@ export const CATEGORIES: ToolCategory[] = [
 
 export const CATEGORY_BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
 
-// Groups shown as top-level entry points on the hero.
-export const GROUPS: { id: ToolGroup; label: string; route: string }[] = [
-  { id: 'image', label: 'Image tools', route: '/image' },
-  { id: 'pdf', label: 'PDF tools', route: '/pdf' },
-];
+// Each group opens directly on its flagship tool (no directory/listing page).
+export const GROUP_HOME: Record<ToolGroup, string> = {
+  image: '/convert',
+  pdf: '/tools/images-to-pdf',
+};
+export const GROUP_LABEL: Record<ToolGroup, string> = {
+  image: 'Image tools',
+  pdf: 'PDF tools',
+};
 
 // Commonly-used image categories surfaced directly in the nav.
 export const PRIMARY_NAV_CATEGORIES = ['convert', 'resize', 'compress', 'edit'];

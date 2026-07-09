@@ -4,12 +4,12 @@ import { ArrowRight, ImageSquare, FilePdf, DotsThreeCircle } from '@phosphor-ico
 import { PlusGrid } from '../components/PlusGrid';
 import { BlinkingCursor } from '../components/Thinking';
 import { TopNav } from '../components/TopNav';
-import { TOTAL_COUNT } from '../tools/catalog';
+import { TOTAL_COUNT, GROUP_HOME } from '../tools/catalog';
 
 export default function Landing() {
   return (
     <div className="page page--landing">
-      <TopNav />
+      <TopNav minimal />
 
       <main className="hero">
         <motion.h1
@@ -36,10 +36,10 @@ export default function Landing() {
         </p>
 
         <div className="hero__cta">
-          <Link className="btn btn--dark btn--icon" to="/image">
+          <Link className="btn btn--dark btn--icon" to={GROUP_HOME.image}>
             <ImageSquare size={16} weight="fill" /> Image tools <ArrowRight size={15} weight="bold" />
           </Link>
-          <Link className="btn btn--icon" to="/pdf">
+          <Link className="btn btn--icon" to={GROUP_HOME.pdf}>
             <FilePdf size={16} weight="fill" /> PDF tools
           </Link>
           <button className="btn btn--soon btn--icon" disabled>
