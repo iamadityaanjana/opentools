@@ -35,6 +35,62 @@ export interface ImageOp {
    * ready-to-download blob (typically a ZIP).
    */
   runFile?: (file: File, p: Params) => OpResult | Promise<OpResult>;
+  /**
+   * Combine op that needs the raw uploaded Files (not rasterized canvases) —
+   * e.g. zipping images where original bytes should be preserved when no
+   * re-encode is requested. Returns a ready-to-download blob (typically a ZIP).
+   */
+  runCombineFiles?: (files: File[], p: Params) => OpResult | Promise<OpResult>;
+}
+
+export interface TileRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  row: number; // 1-based
+  col: number; // 1-based
+}
+
+/**
+ * Compute the tile rectangles for splitting a W×H image, either by an even
+ * rows×cols grid (remainder pixels distributed across cells) or by a fixed
+ * tile width/height (the trailing row/column keeps the smaller remainder).
+ * Shared by the split-image op and its live grid-line overlay so the preview
+ * always matches the exported tiles exactly.
+ */
+export function splitRects(W: number, H: number, p: Params): TileRect[] {
+  const rects: TileRect[] = [];
+  if (String(p.by) === 'size') {
+    const tw = Math.max(1, Math.round(Number(p.tileW) || 1));
+    const th = Math.max(1, Math.round(Number(p.tileH) || 1));
+    const cols = Math.max(1, Math.ceil(W / tw));
+    const rows = Math.max(1, Math.ceil(H / th));
+    for (let r = 0; r < rows; r++) {
+      const y = r * th;
+      const h = Math.min(th, H - y);
+      for (let c = 0; c < cols; c++) {
+        const x = c * tw;
+        const w = Math.min(tw, W - x);
+        if (w > 0 && h > 0) rects.push({ x, y, w, h, row: r + 1, col: c + 1 });
+      }
+    }
+    return rects;
+  }
+  const cols = Math.max(1, Math.round(Number(p.cols) || 1));
+  const rows = Math.max(1, Math.round(Number(p.rows) || 1));
+  for (let r = 0; r < rows; r++) {
+    const y0 = Math.floor((r * H) / rows);
+    const y1 = Math.floor(((r + 1) * H) / rows);
+    for (let c = 0; c < cols; c++) {
+      const x0 = Math.floor((c * W) / cols);
+      const x1 = Math.floor(((c + 1) * W) / cols);
+      const w = x1 - x0;
+      const h = y1 - y0;
+      if (w > 0 && h > 0) rects.push({ x: x0, y: y0, w, h, row: r + 1, col: c + 1 });
+    }
+  }
+  return rects;
 }
 
 // ---- helpers ----
@@ -725,6 +781,141 @@ export const OPS: Record<string, ImageOp> = {
       });
       const base = file.name.replace(/\.[^.]+$/, '') || 'gif';
       return { blob, filename: `${base}-optimized.gif` };
+    },
+  },
+
+  // ---- Organization: split one image into a grid of tiles -> ZIP ----
+  splitImage: {
+    controls: [
+      { key: 'by', label: 'Split by', type: 'select', def: 'grid', options: [
+        { value: 'grid', label: 'Rows × Columns' }, { value: 'size', label: 'Fixed tile size' },
+      ] },
+      { key: 'rows', label: 'Rows', type: 'number', min: 1, max: 50, def: 2 },
+      { key: 'cols', label: 'Columns', type: 'number', min: 1, max: 50, def: 2 },
+      { key: 'tileW', label: 'Tile width (px)', type: 'number', min: 1, def: 256 },
+      { key: 'tileH', label: 'Tile height (px)', type: 'number', min: 1, def: 256 },
+      { key: 'format', label: 'Tile format', type: 'select', def: 'png', options: [
+        { value: 'png', label: 'PNG' }, { value: 'jpeg', label: 'JPEG' }, { value: 'webp', label: 'WebP' },
+      ] },
+      { key: 'quality', label: 'Quality (JPEG/WebP)', type: 'range', min: 10, max: 100, step: 5, def: 90, suffix: '%' },
+    ],
+    // Uses the raw File so tiles are cut at full resolution and named after the
+    // source image; the live overlay (SplitStage) previews the same rects.
+    runFile: async (file, p) => {
+      const [{ decodeToImageData }, { encodeImageData }, JSZip] = await Promise.all([
+        import('../lib/decode'),
+        import('../lib/encode'),
+        import('jszip').then((m) => m.default),
+      ]);
+      const { imageData } = await decodeToImageData(file);
+      const W = imageData.width, H = imageData.height;
+      const [srcC, srcCtx] = make(W, H);
+      srcCtx.putImageData(imageData, 0, 0);
+
+      const rects = splitRects(W, H, p);
+      if (rects.length === 0) throw new Error('No tiles to produce with these settings.');
+      const fmt = String(p.format || 'png');
+      const ext = fmt === 'jpeg' ? 'jpg' : fmt;
+      const q = Number(p.quality ?? 90) / 100;
+      const base = file.name.replace(/\.[^.]+$/, '') || 'image';
+      const rowPad = Math.max(2, String(Math.max(...rects.map((r) => r.row))).length);
+      const colPad = Math.max(2, String(Math.max(...rects.map((r) => r.col))).length);
+
+      // Single tile: hand back the bare image (no need to zip one file).
+      if (rects.length === 1) {
+        const r = rects[0];
+        const [, tctx] = make(r.w, r.h);
+        tctx.drawImage(srcC, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+        const td = tctx.getImageData(0, 0, r.w, r.h);
+        const blob = await encodeImageData({ imageData: td, width: r.w, height: r.h }, fmt, { quality: q });
+        return { blob, filename: `${base}_r${String(r.row).padStart(rowPad, '0')}_c${String(r.col).padStart(colPad, '0')}.${ext}` };
+      }
+
+      const zip = new JSZip();
+      // Encode tiles sequentially to keep peak memory bounded on large images.
+      for (const r of rects) {
+        const [, tctx] = make(r.w, r.h);
+        tctx.drawImage(srcC, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+        const td = tctx.getImageData(0, 0, r.w, r.h);
+        const blob = await encodeImageData({ imageData: td, width: r.w, height: r.h }, fmt, { quality: q });
+        zip.file(`${base}_r${String(r.row).padStart(rowPad, '0')}_c${String(r.col).padStart(colPad, '0')}.${ext}`, blob);
+      }
+      return { blob: await zip.generateAsync({ type: 'blob' }), filename: `${base}-tiles.zip` };
+    },
+  },
+
+  // ---- Metadata: read EXIF/IPTC/XMP from the ORIGINAL bytes (read-only) ----
+  viewExif: {
+    controls: [],
+    // Needs the raw File — re-encoding a canvas would strip all metadata.
+    runFile: async (file) => {
+      const { parseExif } = await import('../lib/exif');
+      const payload = await parseExif(file);
+      // The ToolRunner has a dedicated EXIF renderer that parses this JSON.
+      return { text: JSON.stringify(payload) };
+    },
+  },
+
+  // ---- Metadata: set DPI without resampling (pure byte edit) ----
+  changeDpi: {
+    controls: [
+      { key: 'dpi', label: 'DPI (dots per inch)', type: 'number', min: 1, max: 6000, def: 300 },
+    ],
+    // Operates on the ORIGINAL file bytes so pixels are never recompressed.
+    runFile: async (file, p) => {
+      const { setImageDpi } = await import('../lib/dpi');
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const dpi = Math.max(1, Math.round(Number(p.dpi) || 72));
+      const { bytes, format } = setImageDpi(buf, dpi);
+      const mime = format === 'png' ? 'image/png' : 'image/jpeg';
+      const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: mime });
+      const base = file.name.replace(/\.[^.]+$/, '') || 'image';
+      const ext = format === 'png' ? 'png' : 'jpg';
+      return { blob, filename: `${base}-${dpi}dpi.${ext}` };
+    },
+  },
+
+  // ---- Organization: package many images into a single ZIP ----
+  zipImages: {
+    mode: 'combine',
+    controls: [
+      { key: 'reencode', label: 'Re-encode images', type: 'checkbox', def: false },
+      { key: 'format', label: 'Format (when re-encoding)', type: 'select', def: 'jpeg', options: FORMAT_OPTS },
+      { key: 'quality', label: 'Quality (when re-encoding)', type: 'range', min: 10, max: 100, step: 5, def: 85, suffix: '%' },
+    ],
+    runCombineFiles: async (files, p) => {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      const used = new Map<string, number>();
+      // Ensure unique entry names even if two uploads share a filename.
+      const unique = (name: string) => {
+        const n = used.get(name) ?? 0;
+        used.set(name, n + 1);
+        if (n === 0) return name;
+        const dot = name.lastIndexOf('.');
+        return dot > 0 ? `${name.slice(0, dot)}-${n}${name.slice(dot)}` : `${name}-${n}`;
+      };
+
+      if (Boolean(p.reencode)) {
+        const [{ decodeToImageData }, { encodeImageData }] = await Promise.all([
+          import('../lib/decode'),
+          import('../lib/encode'),
+        ]);
+        const fmt = String(p.format || 'jpeg');
+        const ext = fmt === 'jpeg' ? 'jpg' : fmt;
+        const q = Number(p.quality ?? 85) / 100;
+        // Decode + encode one at a time so we never hold every bitmap at once.
+        for (const f of files) {
+          const { imageData, width, height } = await decodeToImageData(f);
+          const blob = await encodeImageData({ imageData, width, height }, fmt, { quality: q });
+          const base = f.name.replace(/\.[^.]+$/, '') || 'image';
+          zip.file(unique(`${base}.${ext}`), blob);
+        }
+      } else {
+        // Fast path: preserve original bytes by streaming each File into the ZIP.
+        for (const f of files) zip.file(unique(f.name || 'image'), f);
+      }
+      return { blob: await zip.generateAsync({ type: 'blob' }), filename: 'images.zip' };
     },
   },
 };

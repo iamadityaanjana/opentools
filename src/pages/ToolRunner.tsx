@@ -7,6 +7,7 @@ import {
 } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
 import { CropStage, type PreviewSource } from '../components/CropStage';
+import { SplitStage } from '../components/SplitStage';
 import { TOOL_BY_ID, CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL } from '../tools/catalog';
 import { OPS, type Control, type Params, type OpResult } from '../tools/ops';
 import { FORMAT_BY_ID } from '../formats/registry';
@@ -25,7 +26,7 @@ interface Job {
   error?: string;
 }
 
-const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf']);
+const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf', 'viewExif', 'changeDpi']);
 const PREVIEW_MAX = 900;
 
 let idSeq = 0;
@@ -139,6 +140,8 @@ export default function ToolRunner() {
 
   const isCombine = tool?.mode === 'combine';
   const isCrop = tool?.op === 'crop';
+  const isSplit = tool?.op === 'splitImage';
+  const isZip = tool?.op === 'zipImages';
   const isRotate = tool?.op === 'rotate';
   const isFlip = tool?.op === 'flip';
   const isPdf = tool?.op === 'imagesToPdf';
@@ -231,7 +234,7 @@ export default function ToolRunner() {
 
   // live preview (debounced)
   useEffect(() => {
-    if (!previewable || isCrop) return;
+    if (!previewable || isCrop || isSplit) return;
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
@@ -251,7 +254,7 @@ export default function ToolRunner() {
       }
     }, 120);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isCombine, isPdf, isGifCombine, op]);
+  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isSplit, isCombine, isPdf, isGifCombine, op]);
 
   // GIF frame-strip preview: decode the active GIF into small thumbnails.
   useEffect(() => {
@@ -330,7 +333,10 @@ export default function ToolRunner() {
         try {
           const res = await op.runFile(job.file, jp);
           const base = job.file.name.replace(/\.[^.]+$/, '') || 'gif';
-          if (res.blob) {
+          if (res.text !== undefined) {
+            // Text-producing file op (e.g. EXIF read) — no download, shown inline.
+            setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'success', error: res.text } : j)));
+          } else if (res.blob) {
             const blob = res.blob;
             const filename = res.filename ?? `${base}-frames.zip`;
             setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'success', result: { blob, url: URL.createObjectURL(blob), filename } } : j)));
@@ -364,11 +370,14 @@ export default function ToolRunner() {
   }, [op, jobs, paramsById, defaults]);
 
   const runCombine = useCallback(async () => {
-    if (!op?.runCombine || jobs.length === 0) return;
+    if ((!op?.runCombine && !op?.runCombineFiles) || jobs.length === 0) return;
     setCombined({ status: 'working' });
     try {
-      const canvases = await Promise.all(jobs.map((j) => fileToCanvas(j.file)));
-      const res = await op.runCombine(canvases, comboParams);
+      // File-input combine ops (e.g. zip-multiple-images) work off raw Files so
+      // original bytes can be preserved without re-encoding.
+      const res = op.runCombineFiles
+        ? await op.runCombineFiles(jobs.map((j) => j.file), comboParams)
+        : await op.runCombine!(await Promise.all(jobs.map((j) => fileToCanvas(j.file))), comboParams);
       if (res.blob) {
         const filename = res.filename ?? `${tool!.id}.${isPdf ? 'pdf' : 'png'}`;
         setCombined({ status: 'success', blob: res.blob, url: URL.createObjectURL(res.blob), filename });
@@ -557,6 +566,8 @@ export default function ToolRunner() {
                 )}
                 {isCrop && previewSrc ? (
                   <CropStage src={previewSrc} params={activeParams} setParam={patchCrop} />
+                ) : isSplit && previewSrc ? (
+                  <SplitStage src={previewSrc} params={activeParams} />
                 ) : isCombine ? (
                   <div className="combine-editor">
                     <div className="reorder" onDragOver={(e) => e.preventDefault()}>
@@ -573,6 +584,8 @@ export default function ToolRunner() {
                       <p className="dropzone__hint">Drag thumbnails to set page order, then Generate the PDF.</p>
                     ) : isGifCombine ? (
                       <p className="dropzone__hint">Drag thumbnails to set frame order, then Generate. The export is an animated GIF.</p>
+                    ) : isZip ? (
+                      <p className="dropzone__hint">Drag to reorder, then Generate a single ZIP. Original bytes are kept unless you enable re-encoding.</p>
                     ) : previewUrl ? (
                       <img className="preview-img" src={previewUrl} alt="preview" />
                     ) : null}
@@ -603,7 +616,7 @@ export default function ToolRunner() {
           {combined.error && <span className="job__error">{combined.error}</span>}
           {combined.url && (
             <div className="job__result">
-              {combined.filename?.endsWith('.pdf') ? null : <img className="thumb thumb--lg" src={combined.url} alt="" />}
+              {combined.filename && /\.(png|jpe?g|webp|avif|gif|bmp)$/i.test(combined.filename) ? <img className="thumb thumb--lg" src={combined.url} alt="" /> : null}
               <span className="job__size job__size--out">{combined.blob && formatBytes(combined.blob.size)}</span>
               <a className="btn btn--dark btn--icon" href={combined.url} download={combined.filename}><DownloadSimple size={15} weight="bold" /> Download</a>
             </div>
@@ -624,6 +637,7 @@ export default function ToolRunner() {
                   {isSwatchTool && job.error && job.status === 'success' && (
                     <div className="swatches">{job.error.split('  ').map((hex, i) => <span key={i} className="swatch" style={{ background: hex }} title={hex}>{hex}</span>)}</div>
                   )}
+                  {isExif && job.status === 'success' && job.error && <ExifResult json={job.error} />}
                   {isTextTool && job.status === 'success' && job.error && <CopyBox text={job.error} />}
                   {job.error && job.status === 'failed' && <div className="job__error">{job.error}</div>}
                 </div>

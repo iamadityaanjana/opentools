@@ -219,7 +219,9 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'extract-images-from-pdf': { op: 'extractImagesFromPdf' },
   // Organization
   'merge-images': { op: 'merge', mode: 'combine' },
+  'split-image': { op: 'splitImage' },
   'create-collage': { op: 'collage', mode: 'combine' },
+  'zip-multiple-images': { op: 'zipImages', mode: 'combine' },
   // Web & design
   'generate-favicon': { op: 'favicon' },
   'resize-for-social-media': { op: 'social' },
@@ -227,7 +229,9 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'convert-to-base64': { op: 'base64' },
   'image-to-data-uri': { op: 'datauri' },
   // Metadata
+  'view-exif-data': { op: 'viewExif' },
   'remove-exif-metadata': { op: 'passthrough' },
+  'change-dpi': { op: 'changeDpi' },
   'change-resolution': { op: 'resize' },
   // Utilities (batch = multi-file upload of the same op)
   'batch-resize': { op: 'resize' },
