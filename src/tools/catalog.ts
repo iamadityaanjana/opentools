@@ -107,7 +107,6 @@ const SEED: Record<string, ToolSeed[]> = {
     ['Batch Compress Images'],
   ],
   edit: [
-    ['Remove Background', 'soon', '', 'Erase the background with an on-device AI model — nothing is uploaded. First run downloads the model (~40MB), then it works offline.'],
     ['Add Text'],
     ['Add Watermark'],
     ['Blur Image'],
@@ -204,7 +203,6 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'compress-webp': { op: 'compress' },
   'batch-compress-images': { op: 'compress' },
   // Basic editing
-  'remove-background': { op: 'removeBackground' },
   'add-text': { op: 'text' },
   'add-watermark': { op: 'watermark' },
   'blur-image': { op: 'blur' },

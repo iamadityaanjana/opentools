@@ -59,8 +59,33 @@ export interface TileRect {
  * Shared by the split-image op and its live grid-line overlay so the preview
  * always matches the exported tiles exactly.
  */
+/** Parse a JSON-encoded array of numbers stored in a param (0..1 fractions). */
+export function parseFractions(v: unknown): number[] {
+  if (typeof v !== 'string' || !v) return [];
+  try {
+    const arr = JSON.parse(v);
+    if (!Array.isArray(arr)) return [];
+    return arr.map(Number).filter((n) => Number.isFinite(n) && n > 0 && n < 1).sort((a, b) => a - b);
+  } catch { return []; }
+}
+
 export function splitRects(W: number, H: number, p: Params): TileRect[] {
   const rects: TileRect[] = [];
+  // Guide mode: user-placed vertical (xs) / horizontal (ys) cut lines.
+  if (String(p.by) === 'guides' || p.xs != null || p.ys != null) {
+    const xs = parseFractions(p.xs).map((x) => Math.round(x * W));
+    const ys = parseFractions(p.ys).map((y) => Math.round(y * H));
+    const xb = Array.from(new Set([0, ...xs, W])).sort((a, b) => a - b);
+    const yb = Array.from(new Set([0, ...ys, H])).sort((a, b) => a - b);
+    for (let r = 0; r < yb.length - 1; r++) {
+      for (let c = 0; c < xb.length - 1; c++) {
+        const x = xb[c], y = yb[r];
+        const w = xb[c + 1] - x, h = yb[r + 1] - y;
+        if (w > 0 && h > 0) rects.push({ x, y, w, h, row: r + 1, col: c + 1 });
+      }
+    }
+    return rects;
+  }
   if (String(p.by) === 'size') {
     const tw = Math.max(1, Math.round(Number(p.tileW) || 1));
     const th = Math.max(1, Math.round(Number(p.tileH) || 1));
@@ -91,6 +116,35 @@ export function splitRects(W: number, H: number, p: Params): TileRect[] {
     }
   }
   return rects;
+}
+
+// ---- merge (freeform) layout ----
+export interface MergeLayer { nx: number; ny: number; nw: number; nh: number; z?: number; }
+export interface MergeLayoutResult { W: number; H: number; layers: MergeLayer[]; }
+
+/** Default merge layout: images laid out left-to-right, matched to a common height. */
+export function defaultMergeLayout(sizes: { w: number; h: number }[]): MergeLayoutResult {
+  if (sizes.length === 0) return { W: 1, H: 1, layers: [] };
+  const H = Math.max(...sizes.map((s) => s.h || 1));
+  const scaled = sizes.map((s) => ({ w: (s.w || 1) * (H / (s.h || 1)), h: H }));
+  const W = Math.max(1, scaled.reduce((a, s) => a + s.w, 0));
+  let x = 0;
+  const layers = scaled.map((s, i) => { const L = { nx: x / W, ny: 0, nw: s.w / W, nh: 1, z: i }; x += s.w; return L; });
+  return { W: Math.round(W), H: Math.round(H), layers };
+}
+
+/** Resolve the merge layout from params, falling back to the default row layout. */
+export function mergeLayout(p: Params, sizes: { w: number; h: number }[]): MergeLayoutResult {
+  const W = Number(p.canvasW), H = Number(p.canvasH);
+  if (typeof p.layout === 'string' && p.layout && W > 0 && H > 0) {
+    try {
+      const parsed = JSON.parse(p.layout);
+      if (Array.isArray(parsed) && parsed.length === sizes.length) {
+        return { W, H, layers: parsed as MergeLayer[] };
+      }
+    } catch { /* fall through to default */ }
+  }
+  return defaultMergeLayout(sizes);
 }
 
 // ---- helpers ----
@@ -356,13 +410,21 @@ export const OPS: Record<string, ImageOp> = {
 
   // ---- Framing ----
   border: {
+    outputFormat: 'png',
     controls: [
-      { key: 'size', label: 'Border width', type: 'range', min: 1, max: 120, step: 1, def: 20, suffix: 'px' },
+      { key: 'size', label: 'Border width', type: 'range', min: 0, max: 120, step: 1, def: 20, suffix: 'px' },
       { key: 'color', label: 'Color', type: 'color', def: '#ffffff' },
+      { key: 'radius', label: 'Corner radius', type: 'range', min: 0, max: 300, step: 2, def: 0, suffix: 'px' },
     ],
     run: (src, p) => {
-      const b = Number(p.size); const [c, ctx] = make(src.width + b * 2, src.height + b * 2);
-      ctx.fillStyle = String(p.color); ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(src, b, b);
+      const b = Number(p.size); const r = Math.max(0, Number(p.radius) || 0);
+      const [c, ctx] = make(src.width + b * 2, src.height + b * 2);
+      if (r > 0) { roundRectPath(ctx, 0, 0, c.width, c.height, r + b); ctx.clip(); }
+      ctx.fillStyle = String(p.color); ctx.fillRect(0, 0, c.width, c.height);
+      ctx.save();
+      if (r > 0) { roundRectPath(ctx, b, b, src.width, src.height, r); ctx.clip(); }
+      ctx.drawImage(src, b, b);
+      ctx.restore();
       return { canvas: c };
     },
   },
@@ -453,31 +515,6 @@ export const OPS: Record<string, ImageOp> = {
     },
   },
 
-  // ---- AI background removal (runs an ONNX model in-browser, lazy-loaded) ----
-  removeBackground: {
-    outputFormat: 'png',
-    controls: [
-      { key: 'bg', label: 'Background', type: 'select', def: 'transparent', options: [
-        { value: 'transparent', label: 'Transparent (PNG)' }, { value: 'color', label: 'Solid color' },
-      ] },
-      { key: 'color', label: 'Color (when solid)', type: 'color', def: '#ffffff' },
-    ],
-    runFile: async (file, p) => {
-      const { removeBackground } = await import('@imgly/background-removal');
-      const cut = await removeBackground(file);
-      const base = file.name.replace(/\.[^.]+$/, '') || 'image';
-      if (p.bg === 'color') {
-        const bitmap = await createImageBitmap(cut);
-        const [c, ctx] = make(bitmap.width, bitmap.height);
-        ctx.fillStyle = String(p.color); ctx.fillRect(0, 0, c.width, c.height);
-        ctx.drawImage(bitmap, 0, 0);
-        const out = await new Promise<Blob>((res) => c.toBlob((b) => res(b!), 'image/png'));
-        return { blob: out, filename: `${base}-nobg.png` };
-      }
-      return { blob: cut, filename: `${base}-nobg.png` };
-    },
-  },
-
   // ---- Compression / conversion (output-driven) ----
   compress: {
     controls: [
@@ -553,22 +590,22 @@ export const OPS: Record<string, ImageOp> = {
   // ---- Combine (many -> one) ----
   merge: {
     mode: 'combine',
-    controls: [{ key: 'dir', label: 'Direction', type: 'select', def: 'h', options: [
-      { value: 'h', label: 'Horizontal' }, { value: 'v', label: 'Vertical' },
-    ] }, { key: 'gap', label: 'Gap', type: 'range', min: 0, max: 60, step: 2, def: 0, suffix: 'px' }, { key: 'bg', label: 'Background', type: 'color', def: '#ffffff' }],
+    controls: [{ key: 'bg', label: 'Background', type: 'color', def: '#ffffff' }],
+    // Freeform compositor: the MergeCanvas editor writes a normalized `layout`
+    // (per-image {nx,ny,nw,nh} in 0..1) plus the canvas dimensions. When no
+    // layout is present yet, fall back to a simple horizontal row.
     runCombine: (srcs, p) => {
-      const gap = Number(p.gap);
-      if (p.dir === 'h') {
-        const h = Math.max(...srcs.map((s) => s.height));
-        const w = srcs.reduce((a, s) => a + s.width, 0) + gap * (srcs.length - 1);
-        const [c, ctx] = make(w, h); ctx.fillStyle = String(p.bg); ctx.fillRect(0, 0, w, h);
-        let x = 0; for (const s of srcs) { ctx.drawImage(s, x, 0); x += s.width + gap; }
-        return { canvas: c };
+      const layout = mergeLayout(p, srcs.map((s) => ({ w: s.width, h: s.height })));
+      const [c, ctx] = make(layout.W, layout.H);
+      ctx.fillStyle = String(p.bg); ctx.fillRect(0, 0, c.width, c.height);
+      ctx.imageSmoothingQuality = 'high';
+      // Draw from lowest to highest z so stacking matches the editor.
+      const order = srcs.map((_, i) => i).sort((a, b) => (layout.layers[a]?.z ?? a) - (layout.layers[b]?.z ?? b));
+      for (const i of order) {
+        const L = layout.layers[i];
+        if (!L) continue;
+        ctx.drawImage(srcs[i], L.nx * layout.W, L.ny * layout.H, L.nw * layout.W, L.nh * layout.H);
       }
-      const w = Math.max(...srcs.map((s) => s.width));
-      const h = srcs.reduce((a, s) => a + s.height, 0) + gap * (srcs.length - 1);
-      const [c, ctx] = make(w, h); ctx.fillStyle = String(p.bg); ctx.fillRect(0, 0, w, h);
-      let y = 0; for (const s of srcs) { ctx.drawImage(s, 0, y); y += s.height + gap; }
       return { canvas: c };
     },
   },
@@ -576,10 +613,13 @@ export const OPS: Record<string, ImageOp> = {
     mode: 'combine',
     controls: [{ key: 'cols', label: 'Columns', type: 'range', min: 1, max: 6, step: 1, def: 3 }, { key: 'cell', label: 'Cell size (px)', type: 'number', min: 80, def: 300 }, { key: 'gap', label: 'Gap', type: 'range', min: 0, max: 40, step: 2, def: 8, suffix: 'px' }, { key: 'bg', label: 'Background', type: 'color', def: '#ffffff' }],
     runCombine: (srcs, p) => {
-      const cols = Number(p.cols), cell = Number(p.cell), gap = Number(p.gap);
-      const rows = Math.ceil(srcs.length / cols);
+      const cols = Math.max(1, Math.round(Number(p.cols) || 3));
+      const cell = Math.max(40, Math.round(Number(p.cell) || 300));
+      const gap = Math.max(0, Math.round(Number(p.gap) || 0));
+      const rows = Math.max(1, Math.ceil(srcs.length / cols));
       const w = cols * cell + gap * (cols + 1), h = rows * cell + gap * (rows + 1);
       const [c, ctx] = make(w, h); ctx.fillStyle = String(p.bg); ctx.fillRect(0, 0, w, h);
+      ctx.imageSmoothingQuality = 'high';
       srcs.forEach((s, i) => {
         const cx = gap + (i % cols) * (cell + gap), cy = gap + Math.floor(i / cols) * (cell + gap);
         const sc = Math.min(cell / s.width, cell / s.height); const dw = s.width * sc, dh = s.height * sc;
@@ -863,20 +903,13 @@ export const OPS: Record<string, ImageOp> = {
   // ---- Organization: split one image into a grid of tiles -> ZIP ----
   splitImage: {
     controls: [
-      { key: 'by', label: 'Split by', type: 'select', def: 'grid', options: [
-        { value: 'grid', label: 'Rows × Columns' }, { value: 'size', label: 'Fixed tile size' },
-      ] },
-      { key: 'rows', label: 'Rows', type: 'number', min: 1, max: 50, def: 2 },
-      { key: 'cols', label: 'Columns', type: 'number', min: 1, max: 50, def: 2 },
-      { key: 'tileW', label: 'Tile width (px)', type: 'number', min: 1, def: 256 },
-      { key: 'tileH', label: 'Tile height (px)', type: 'number', min: 1, def: 256 },
       { key: 'format', label: 'Tile format', type: 'select', def: 'png', options: [
         { value: 'png', label: 'PNG' }, { value: 'jpeg', label: 'JPEG' }, { value: 'webp', label: 'WebP' },
       ] },
       { key: 'quality', label: 'Quality (JPEG/WebP)', type: 'range', min: 10, max: 100, step: 5, def: 90, suffix: '%' },
     ],
     // Uses the raw File so tiles are cut at full resolution and named after the
-    // source image; the live overlay (SplitStage) previews the same rects.
+    // source image; the interactive SplitEditor previews the same rects.
     runFile: async (file, p) => {
       const [{ decodeToImageData }, { encodeImageData }, JSZip] = await Promise.all([
         import('../lib/decode'),

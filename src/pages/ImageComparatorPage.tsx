@@ -7,6 +7,8 @@ import { TopNav } from '../components/TopNav';
 import { decodeToImageData } from '../lib/decode';
 
 const MAX_W = 760;
+// Cap the working resolution so diff/scale stay fast even for huge uploads.
+const WORK_CAP = 1600;
 const DEFAULT_THRESHOLD = 16;
 
 type Mode = 'slider' | 'onion' | 'diff';
@@ -106,12 +108,12 @@ function computeDiff(a: ImageData, b: ImageData): DiffState {
 }
 
 function Dropslot({
-  slot, loaded, dragging, onFile, onSetDrag, onClear,
+  slot, loaded, dragging, onFiles, onSetDrag, onClear,
 }: {
   slot: Slot;
   loaded: Loaded | null;
   dragging: boolean;
-  onFile: (slot: Slot, file: File) => void;
+  onFiles: (slot: Slot, files: FileList | File[]) => void;
   onSetDrag: (slot: Slot | null) => void;
   onClear: (slot: Slot) => void;
 }) {
@@ -123,7 +125,7 @@ function Dropslot({
         className={`dropzone dropzone--compact ${dragging ? 'dropzone--active' : ''}`}
         onDragOver={(e) => { e.preventDefault(); onSetDrag(slot); }}
         onDragLeave={() => onSetDrag(null)}
-        onDrop={(e) => { e.preventDefault(); onSetDrag(null); if (e.dataTransfer.files[0]) onFile(slot, e.dataTransfer.files[0]); }}
+        onDrop={(e) => { e.preventDefault(); onSetDrag(null); if (e.dataTransfer.files.length) onFiles(slot, e.dataTransfer.files); }}
         onClick={() => inputRef.current?.click()}
         role="button"
         tabIndex={0}
@@ -131,16 +133,17 @@ function Dropslot({
         <input
           ref={inputRef}
           type="file"
+          multiple
           accept="image/*,.heic,.heif,.tif,.tiff,.avif,.svg,.ico,.jp2"
           hidden
-          onChange={(e) => e.target.files?.[0] && onFile(slot, e.target.files[0])}
+          onChange={(e) => e.target.files?.length && onFiles(slot, e.target.files)}
         />
         <div className="dropzone__inner">
           <UploadSimple size={22} weight="light" className="dropzone__icon" />
           <p className="dropzone__title">
             {loaded ? <span className="cmp-slot__name" title={loaded.name}>{loaded.name}</span> : <>Drop image {slot} <span className="muted">or browse</span></>}
           </p>
-          {loaded && <p className="dropzone__hint">{loaded.width} × {loaded.height} px</p>}
+          {loaded ? <p className="dropzone__hint">{loaded.width} × {loaded.height} px</p> : <p className="dropzone__hint">Tip: select two images to fill both</p>}
         </div>
       </div>
       {loaded && (
@@ -176,19 +179,32 @@ export default function ImageComparatorPage() {
   const both = imgA && imgB;
   const mismatch = both && (imgA.width !== imgB.width || imgA.height !== imgB.height);
 
-  const loadFile = useCallback(async (slot: Slot, file: File) => {
+  const decodeOne = useCallback(async (file: File): Promise<Loaded> => {
+    const { imageData, width, height } = await decodeToImageData(file);
+    return { imageData, width, height, name: file.name };
+  }, []);
+
+  // Load one or two files. Selecting two at once fills A and B together;
+  // otherwise the file lands in the given slot.
+  const loadFiles = useCallback(async (slot: Slot, files: FileList | File[]) => {
+    const list = Array.from(files).slice(0, 2);
+    if (list.length === 0) return;
     setLoading(true);
     setError(null);
     try {
-      const { imageData, width, height } = await decodeToImageData(file);
-      const next: Loaded = { imageData, width, height, name: file.name };
-      if (slot === 'A') setImgA(next); else setImgB(next);
+      if (list.length >= 2) {
+        const [a, b] = await Promise.all([decodeOne(list[0]), decodeOne(list[1])]);
+        setImgA(a); setImgB(b);
+      } else {
+        const one = await decodeOne(list[0]);
+        if (slot === 'A') setImgA(one); else setImgB(one);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load this image.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [decodeOne]);
 
   const clearSlot = useCallback((slot: Slot) => {
     if (slot === 'A') setImgA(null); else setImgB(null);
@@ -203,9 +219,13 @@ export default function ImageComparatorPage() {
       commonRef.current = null;
       return;
     }
-    // Common size = the larger of the two in each dimension, so neither loses detail.
-    const w = Math.max(imgA.width, imgB.width);
-    const h = Math.max(imgA.height, imgB.height);
+    // Common size = the larger of the two in each dimension, then capped to a
+    // working resolution so scaling + diff stay responsive on big images.
+    let w = Math.max(imgA.width, imgB.width);
+    let h = Math.max(imgA.height, imgB.height);
+    const shrink = Math.min(1, WORK_CAP / Math.max(w, h));
+    w = Math.max(1, Math.round(w * shrink));
+    h = Math.max(1, Math.round(h * shrink));
     commonRef.current = { w, h };
     const a = scaleImageData(imgA.imageData, w, h);
     const b = scaleImageData(imgB.imageData, w, h);
@@ -309,8 +329,8 @@ export default function ImageComparatorPage() {
       </div>
 
       <div className="cmp-slots">
-        <Dropslot slot="A" loaded={imgA} dragging={dragSlot === 'A'} onFile={loadFile} onSetDrag={setDragSlot} onClear={clearSlot} />
-        <Dropslot slot="B" loaded={imgB} dragging={dragSlot === 'B'} onFile={loadFile} onSetDrag={setDragSlot} onClear={clearSlot} />
+        <Dropslot slot="A" loaded={imgA} dragging={dragSlot === 'A'} onFiles={loadFiles} onSetDrag={setDragSlot} onClear={clearSlot} />
+        <Dropslot slot="B" loaded={imgB} dragging={dragSlot === 'B'} onFiles={loadFiles} onSetDrag={setDragSlot} onClear={clearSlot} />
       </div>
 
       {error && <div className="job__error" style={{ marginTop: 12 }}>{error}</div>}

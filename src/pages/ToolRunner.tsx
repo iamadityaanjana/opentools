@@ -7,7 +7,8 @@ import {
 } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
 import { CropStage, type PreviewSource } from '../components/CropStage';
-import { SplitStage } from '../components/SplitStage';
+import { SplitEditor } from '../components/SplitEditor';
+import { MergeCanvas } from '../components/MergeCanvas';
 import { OverlayStage } from '../components/OverlayStage';
 import { Dropdown } from '../components/Dropdown';
 import { TOOL_BY_ID, CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL } from '../tools/catalog';
@@ -28,7 +29,7 @@ interface Job {
   error?: string;
 }
 
-const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf', 'viewExif', 'changeDpi', 'removeBackground']);
+const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf', 'viewExif', 'changeDpi']);
 const PREVIEW_MAX = 900;
 const ENCODABLE = new Set(['jpeg', 'png', 'webp', 'avif']);
 
@@ -47,7 +48,6 @@ const VERB: Record<string, string> = {
   'canvas-size': 'Apply', text: 'Apply', watermark: 'Apply', passthrough: 'Process', viewExif: 'Read metadata',
   changeDpi: 'Set DPI', base64: 'Generate', datauri: 'Generate', colorPalette: 'Extract', colorCount: 'Count',
   gifToImages: 'Extract', gifResizer: 'Resize', gifOptimizer: 'Optimize', splitImage: 'Split',
-  removeBackground: 'Remove background',
 };
 
 let idSeq = 0;
@@ -206,6 +206,7 @@ export default function ToolRunner() {
   const isCrop = tool?.op === 'crop';
   const isSplit = tool?.op === 'splitImage';
   const isZip = tool?.op === 'zipImages';
+  const isMerge = tool?.op === 'merge';
   const isRotate = tool?.op === 'rotate';
   const isFlip = tool?.op === 'flip';
   const isText = tool?.op === 'text';
@@ -228,6 +229,7 @@ export default function ToolRunner() {
     });
     setActiveId('');
     setParamsById({});
+    setComboParams(defaults);
     setCombined(null);
     setPreviewUrl(null);
     setPreviewSrc(null);
@@ -235,7 +237,7 @@ export default function ToolRunner() {
     setGifFrames([]);
     cacheRef.current.clear();
     initedRef.current.clear();
-  }, [toolId]);
+  }, [toolId, defaults]);
 
   // Reflect the current tool in the browser tab title.
   useEffect(() => {
@@ -320,8 +322,10 @@ export default function ToolRunner() {
       setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), width: previewSrc.fullW, height: previewSrc.fullH } }));
     } else if (isText || isWatermark) {
       setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), nx: 0.5, ny: 0.5 } }));
+    } else if (isSplit) {
+      setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), xs: '[0.5]', ys: '[0.5]' } }));
     }
-  }, [previewSrc, tool, activeJob, isCombine, isCrop, isText, isWatermark, defaults]);
+  }, [previewSrc, tool, activeJob, isCombine, isCrop, isText, isWatermark, isSplit, defaults]);
 
   // live preview (debounced)
   useEffect(() => {
@@ -330,7 +334,7 @@ export default function ToolRunner() {
     const t = setTimeout(async () => {
       try {
         if (isCombine) {
-          if (isPdf || isGifCombine || previewSrcs.length === 0 || !op?.runCombine) return;
+          if (isPdf || isGifCombine || isMerge || previewSrcs.length === 0 || !op?.runCombine) return;
           setPreviewBusy(true);
           const res = await op.runCombine(previewSrcs.map((s) => s.canvas), comboParams);
           if (!cancelled && res.canvas) setPreviewUrl(res.canvas.toDataURL('image/png'));
@@ -345,7 +349,7 @@ export default function ToolRunner() {
       }
     }, 120);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isSplit, isCombine, isPdf, isGifCombine, op]);
+  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isSplit, isCombine, isPdf, isGifCombine, isMerge, op]);
 
   // GIF frame-strip preview: decode the active GIF into small thumbnails.
   useEffect(() => {
@@ -664,7 +668,21 @@ export default function ToolRunner() {
                 ) : useOverlay && previewSrc ? (
                   <OverlayStage src={previewSrc} params={activeParams} setParam={patchCrop} />
                 ) : isSplit && previewSrc ? (
-                  <SplitStage src={previewSrc} params={activeParams} />
+                  <SplitEditor src={previewSrc} params={activeParams} setParam={setParam} />
+                ) : isMerge ? (
+                  <div className="combine-editor">
+                    {previewSrcs.length > 0 && <MergeCanvas srcs={previewSrcs} params={comboParams} setParam={setParam} />}
+                    <div className="reorder" onDragOver={(e) => e.preventDefault()}>
+                      {jobs.map((j, i) => (
+                        <div key={j.id} className="reorder__item" title="Image in the canvas">
+                          <img className="reorder__thumb" src={j.previewUrl} alt="" />
+                          <span className="reorder__idx">{i + 1}</span>
+                          <button className="job__remove" onClick={() => removeJob(j.id)} aria-label="Remove"><X size={12} /></button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="dropzone__hint">Drag images to move, drag a corner to resize. Double-click to bring to front.</p>
+                  </div>
                 ) : isCombine ? (
                   <div className="combine-editor">
                     <div className="reorder" onDragOver={(e) => e.preventDefault()}>
