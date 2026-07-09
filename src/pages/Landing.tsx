@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, FilePdf, ImageSquare, Sparkle } from '@phosphor-icons/react';
+import { ArrowRight, ImageSquare, SquaresFour } from '@phosphor-icons/react';
 import { PlusGrid } from '../components/PlusGrid';
 import { BlinkingCursor } from '../components/Thinking';
+import { TOTAL_COUNT } from '../tools/catalog';
 
 // Warm the converter route's chunk on intent, without loading it up front.
 function preloadConverter() {
@@ -23,8 +24,8 @@ export default function Landing() {
           >
             Book a call
           </a>
-          <Link className="btn btn--pill" to="/convert" onMouseEnter={preloadConverter}>
-            Open tool
+          <Link className="btn btn--pill" to="/tools">
+            All tools
           </Link>
         </div>
       </header>
@@ -42,31 +43,29 @@ export default function Landing() {
         <PlusGrid />
 
         <p className="hero__lead">
-          A little box of fast, private tools that run entirely in your browser. Today:{' '}
-          <span className="kw kw--blue">image conversion</span>. Soon:{' '}
-          <span className="kw kw--red">PDF tools</span>,{' '}
-          <span className="kw kw--green">compression</span>, and{' '}
-          <span className="kw kw--purple">more</span>.
+          A little box of fast, private tools that run entirely in your browser —{' '}
+          <span className="kw kw--blue">convert</span>,{' '}
+          <span className="kw kw--red">compress</span>,{' '}
+          <span className="kw kw--green">resize</span>,{' '}
+          <span className="kw kw--yellow">edit</span>,{' '}
+          <span className="kw kw--purple">PDF</span> and more.
         </p>
         <p className="hero__sub">
-          no servers, no uploads, no waiting <BlinkingCursor />
+          {TOTAL_COUNT}+ tools · no servers, no uploads, no waiting <BlinkingCursor />
         </p>
 
         <div className="hero__cta">
+          <Link className="btn btn--dark btn--icon" to="/tools">
+            <SquaresFour size={16} weight="fill" /> Browse all tools <ArrowRight size={15} weight="bold" />
+          </Link>
           <Link
-            className="btn btn--dark btn--icon"
+            className="btn btn--icon"
             to="/convert"
             onMouseEnter={preloadConverter}
             onFocus={preloadConverter}
           >
-            <ImageSquare size={16} weight="fill" /> Image converter <ArrowRight size={15} weight="bold" />
+            <ImageSquare size={16} weight="fill" /> Image converter
           </Link>
-          <button className="btn btn--soon btn--icon" disabled>
-            <FilePdf size={16} /> PDF tools <span className="soon-tag">soon</span>
-          </button>
-          <button className="btn btn--soon btn--icon" disabled>
-            <Sparkle size={16} /> More <span className="soon-tag">soon</span>
-          </button>
         </div>
       </main>
     </div>
