@@ -4,6 +4,7 @@ import {
   Textbox, UploadSimple, DownloadSimple, Trash, X, ArrowLeft, ShieldCheck, Warning,
 } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
+import { Dropdown } from '../components/Dropdown';
 import { formatBytes } from '../lib/convert';
 import {
   splitName, joinName, dedupeNames, applyCase, expandPattern, todayStamp,
@@ -162,13 +163,18 @@ export default function BatchRenamePage() {
             </label>
             <label className="field">
               <span className="field__label">Case</span>
-              <select className="select" value={caseMode} onChange={(e) => setCaseMode(e.target.value as CaseMode)}>
-                <option value="none">Keep</option>
-                <option value="lower">lowercase</option>
-                <option value="upper">UPPERCASE</option>
-                <option value="kebab">kebab-case</option>
-                <option value="snake">snake_case</option>
-              </select>
+              <Dropdown
+                value={caseMode}
+                onChange={(v) => setCaseMode(v as CaseMode)}
+                ariaLabel="Case"
+                options={[
+                  { value: 'none', label: 'Keep' },
+                  { value: 'lower', label: 'lowercase' },
+                  { value: 'upper', label: 'UPPERCASE' },
+                  { value: 'kebab', label: 'kebab-case' },
+                  { value: 'snake', label: 'snake_case' },
+                ]}
+              />
             </label>
           </div>
 

@@ -4,6 +4,7 @@ import {
   FilmStrip, UploadSimple, DownloadSimple, Trash, ShieldCheck, ImageSquare, VideoCamera,
 } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
+import { Dropdown } from '../components/Dropdown';
 import { decodeToImageData } from '../lib/decode';
 import { extractEmbeddedVideo, type EmbeddedVideo } from '../lib/motionPhoto';
 
@@ -238,10 +239,12 @@ export default function LivePhotoPage() {
             </label>
             <label className="field">
               <span className="field__label">Export format</span>
-              <select className="select" value={stillFmt} onChange={(e) => setStillFmt(e.target.value as StillFmt)}>
-                <option value="jpeg">JPEG</option>
-                <option value="png">PNG</option>
-              </select>
+              <Dropdown
+                value={stillFmt}
+                onChange={(v) => setStillFmt(v as StillFmt)}
+                ariaLabel="Export format"
+                options={[{ value: 'jpeg', label: 'JPEG' }, { value: 'png', label: 'PNG' }]}
+              />
             </label>
           </div>
 

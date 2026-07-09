@@ -82,6 +82,8 @@ export function CropStage({
     [x, y, w, h, onMove, stop],
   );
 
+  const boxStyle = { left: x * scale, top: y * scale, width: w * scale, height: h * scale };
+
   return (
     <div className="crop-wrap">
       <div
@@ -89,9 +91,14 @@ export function CropStage({
         className={`crop-stage ${active ? 'is-dragging' : ''}`}
         style={{ width: dispW, height: dispH, backgroundImage: `url(${dataUrl})` }}
       >
+        {/* Dimming overlay is clipped to the stage; kept separate from the box so
+            the resize handles can sit outside the box without being clipped. */}
+        <div className="crop-mask">
+          <div className="crop-shadow" style={boxStyle} />
+        </div>
         <div
           className="crop-box"
-          style={{ left: x * scale, top: y * scale, width: w * scale, height: h * scale }}
+          style={boxStyle}
           onPointerDown={start('move')}
         >
           <span className="crop-handle crop-handle--nw" onPointerDown={start('nw')} />

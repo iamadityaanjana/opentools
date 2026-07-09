@@ -180,6 +180,34 @@ const FORMAT_OPTS = [
   { value: 'avif', label: 'AVIF' },
 ];
 
+// Same list, prefixed with "Keep original" so tools can auto-detect the input
+// format and only re-encode to something else when the user explicitly asks.
+const FORMAT_OPTS_AUTO = [{ value: 'auto', label: 'Keep original format' }, ...FORMAT_OPTS];
+
+// Font choices for the text/watermark overlays.
+const FONT_OPTS = [
+  { value: 'Instrument Sans', label: 'Instrument Sans' },
+  { value: 'Arial, sans-serif', label: 'Arial' },
+  { value: 'Georgia, serif', label: 'Georgia' },
+  { value: '"Times New Roman", serif', label: 'Times New Roman' },
+  { value: '"Courier New", monospace', label: 'Courier' },
+  { value: 'Impact, sans-serif', label: 'Impact' },
+];
+
+const STYLE_OPTS = [
+  { value: 'bold', label: 'Bold' },
+  { value: 'normal', label: 'Regular' },
+  { value: 'italic', label: 'Italic' },
+  { value: 'bolditalic', label: 'Bold Italic' },
+];
+
+/** Build a canvas `font` string from style + size + family params. */
+export function fontString(style: string, size: number, family: string): string {
+  const italic = style === 'italic' || style === 'bolditalic' ? 'italic ' : '';
+  const weight = style === 'bold' || style === 'bolditalic' ? 'bold ' : '';
+  return `${italic}${weight}${size}px ${family || 'Instrument Sans'}`;
+}
+
 export const OPS: Record<string, ImageOp> = {
   // ---- Resize & crop / geometry ----
   resize: {
@@ -370,34 +398,57 @@ export const OPS: Record<string, ImageOp> = {
   // ---- Text / watermark ----
   text: {
     controls: [
-      { key: 'text', label: 'Text', type: 'text', def: 'Hello', placeholder: 'Your text' },
-      { key: 'size', label: 'Font size', type: 'range', min: 8, max: 200, step: 2, def: 48, suffix: 'px' },
+      { key: 'text', label: 'Text', type: 'text', def: 'Your text', placeholder: 'Type your text' },
+      { key: 'font', label: 'Font', type: 'select', def: 'Instrument Sans', options: FONT_OPTS },
+      { key: 'style', label: 'Style', type: 'select', def: 'bold', options: STYLE_OPTS },
+      { key: 'size', label: 'Font size', type: 'range', min: 8, max: 400, step: 2, def: 64, suffix: 'px' },
       { key: 'color', label: 'Color', type: 'color', def: '#ffffff' },
-      { key: 'pos', label: 'Position', type: 'select', def: 'bottom', options: [
-        { value: 'top', label: 'Top' }, { value: 'center', label: 'Center' }, { value: 'bottom', label: 'Bottom' },
-      ] },
+      { key: 'outline', label: 'Add outline', type: 'checkbox', def: true },
     ],
     run: (src, p) => {
-      const [c, ctx] = clone(src); const fs = Number(p.size);
-      ctx.font = `bold ${fs}px Instrument Sans, sans-serif`; ctx.fillStyle = String(p.color);
-      ctx.textAlign = 'center'; ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = fs / 16;
-      const x = c.width / 2; const y = p.pos === 'top' ? fs : p.pos === 'center' ? c.height / 2 : c.height - fs / 2;
-      ctx.strokeText(String(p.text), x, y); ctx.fillText(String(p.text), x, y);
+      const [c, ctx] = clone(src);
+      const t = String(p.text ?? '').trim();
+      if (!t) return { canvas: c };
+      const fs = Number(p.size);
+      ctx.font = fontString(String(p.style ?? 'bold'), fs, String(p.font ?? 'Instrument Sans'));
+      ctx.fillStyle = String(p.color); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      // nx / ny are fractional positions (0..1) set by the draggable overlay.
+      const x = (p.nx != null ? Number(p.nx) : 0.5) * c.width;
+      const y = (p.ny != null ? Number(p.ny) : 0.5) * c.height;
+      if (p.outline) { ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = Math.max(1, fs / 14); ctx.strokeText(t, x, y); }
+      ctx.fillText(t, x, y);
       return { canvas: c };
     },
   },
   watermark: {
     controls: [
-      { key: 'text', label: 'Watermark text', type: 'text', def: '© toolbox', placeholder: 'Watermark' },
+      { key: 'text', label: 'Watermark text', type: 'text', def: '© toolbox', placeholder: 'Watermark text' },
+      { key: 'style', label: 'Style', type: 'select', def: 'tile', options: [
+        { value: 'tile', label: 'Tiled (diagonal)' }, { value: 'single', label: 'Single (drag to place)' },
+      ] },
+      { key: 'font', label: 'Font', type: 'select', def: 'Instrument Sans', options: FONT_OPTS },
+      { key: 'color', label: 'Color', type: 'color', def: '#ffffff' },
       { key: 'opacity', label: 'Opacity', type: 'range', min: 5, max: 100, step: 5, def: 35, suffix: '%' },
-      { key: 'size', label: 'Font size', type: 'range', min: 8, max: 120, step: 2, def: 28, suffix: 'px' },
+      { key: 'size', label: 'Font size', type: 'range', min: 8, max: 300, step: 2, def: 32, suffix: 'px' },
     ],
     run: (src, p) => {
-      const [c, ctx] = clone(src); const fs = Number(p.size);
-      ctx.globalAlpha = Number(p.opacity) / 100; ctx.fillStyle = '#ffffff'; ctx.font = `bold ${fs}px Instrument Sans, sans-serif`;
-      ctx.textAlign = 'center'; ctx.translate(c.width / 2, c.height / 2); ctx.rotate(-Math.PI / 6);
-      const step = fs * 6;
-      for (let y = -c.height; y < c.height; y += step) for (let x = -c.width; x < c.width; x += step * 1.4) ctx.fillText(String(p.text), x, y);
+      const [c, ctx] = clone(src);
+      const t = String(p.text ?? '').trim();
+      if (!t) return { canvas: c };
+      const fs = Number(p.size);
+      ctx.globalAlpha = Number(p.opacity) / 100;
+      ctx.fillStyle = String(p.color);
+      ctx.font = fontString('bold', fs, String(p.font ?? 'Instrument Sans'));
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      if (p.style === 'single') {
+        const x = (p.nx != null ? Number(p.nx) : 0.5) * c.width;
+        const y = (p.ny != null ? Number(p.ny) : 0.5) * c.height;
+        ctx.fillText(t, x, y);
+      } else {
+        ctx.translate(c.width / 2, c.height / 2); ctx.rotate(-Math.PI / 6);
+        const step = fs * 6;
+        for (let y = -c.height; y < c.height; y += step) for (let x = -c.width; x < c.width; x += step * 1.4) ctx.fillText(t, x, y);
+      }
       return { canvas: c };
     },
   },
@@ -405,7 +456,7 @@ export const OPS: Record<string, ImageOp> = {
   // ---- Compression / conversion (output-driven) ----
   compress: {
     controls: [
-      { key: 'format', label: 'Format', type: 'select', def: 'jpeg', options: FORMAT_OPTS },
+      { key: 'format', label: 'Output format', type: 'select', def: 'auto', options: FORMAT_OPTS_AUTO },
       { key: 'quality', label: 'Quality', type: 'range', min: 10, max: 100, step: 5, def: 75, suffix: '%' },
     ],
     run: (src) => ({ canvas: clone(src)[0] }),
@@ -453,7 +504,7 @@ export const OPS: Record<string, ImageOp> = {
   },
 
   // ---- Passthrough (re-encode strips metadata like EXIF) ----
-  passthrough: { controls: [{ key: 'format', label: 'Format', type: 'select', def: 'png', options: FORMAT_OPTS }], run: (src) => ({ canvas: clone(src)[0] }) },
+  passthrough: { controls: [{ key: 'format', label: 'Output format', type: 'select', def: 'auto', options: FORMAT_OPTS_AUTO }], run: (src) => ({ canvas: clone(src)[0] }) },
   convertJpeg: { controls: [{ key: 'quality', label: 'Quality', type: 'range', min: 10, max: 100, step: 5, def: 90, suffix: '%' }], outputFormat: 'jpeg', run: (src) => ({ canvas: clone(src)[0] }) },
 
   // ---- Text output ----

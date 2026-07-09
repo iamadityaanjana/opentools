@@ -18,6 +18,7 @@ import {
 import { convertFile, formatBytes, type ConversionResult } from '../lib/convert';
 import { StatusBadge, type JobStatus } from './StatusBadge';
 import { DotsThinking } from './Thinking';
+import { Dropdown } from './Dropdown';
 
 interface Job {
   id: string;
@@ -164,17 +165,15 @@ export default function Converter() {
         <div className="converter__controls">
           <label className="field">
             <span className="field__label">Convert to</span>
-            <select value={target} onChange={(e) => setTarget(e.target.value)} className="select">
-              {Object.entries(GROUPED).map(([cat, formats]) => (
-                <optgroup key={cat} label={CATEGORY_LABELS[cat as FormatCategory]}>
-                  {formats.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            <Dropdown
+              value={target}
+              onChange={setTarget}
+              ariaLabel="Convert to"
+              groups={Object.entries(GROUPED).map(([cat, formats]) => ({
+                label: CATEGORY_LABELS[cat as FormatCategory],
+                options: formats.map((f) => ({ value: f.id, label: f.label })),
+              }))}
+            />
           </label>
 
           {isLossy && (

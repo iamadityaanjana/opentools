@@ -8,9 +8,11 @@ import {
 import { TopNav } from '../components/TopNav';
 import { CropStage, type PreviewSource } from '../components/CropStage';
 import { SplitStage } from '../components/SplitStage';
+import { OverlayStage } from '../components/OverlayStage';
+import { Dropdown } from '../components/Dropdown';
 import { TOOL_BY_ID, CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL } from '../tools/catalog';
 import { OPS, type Control, type Params, type OpResult } from '../tools/ops';
-import { FORMAT_BY_ID } from '../formats/registry';
+import { FORMAT_BY_ID, detectFormat } from '../formats/registry';
 import { decodeToImageData } from '../lib/decode';
 import { encodeImageData } from '../lib/encode';
 import { formatBytes } from '../lib/convert';
@@ -28,6 +30,24 @@ interface Job {
 
 const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf', 'viewExif', 'changeDpi']);
 const PREVIEW_MAX = 900;
+const ENCODABLE = new Set(['jpeg', 'png', 'webp', 'avif']);
+
+// Resolve a job's output format id, honouring "Keep original" (auto) by
+// detecting the uploaded file's format and falling back to JPEG when the
+// source can't be re-encoded (e.g. HEIC/TIFF/GIF).
+function resolveFormat(fmt: string, file: File): string {
+  if (fmt !== 'auto') return fmt;
+  const det = detectFormat(file);
+  return det && ENCODABLE.has(det.id) ? det.id : 'jpeg';
+}
+
+// Human action verb per op — some tools process/read rather than "convert".
+const VERB: Record<string, string> = {
+  compress: 'Compress', reduce: 'Compress', resize: 'Resize', crop: 'Crop', rotate: 'Rotate', flip: 'Flip',
+  'canvas-size': 'Apply', text: 'Apply', watermark: 'Apply', passthrough: 'Process', viewExif: 'Read metadata',
+  changeDpi: 'Set DPI', base64: 'Generate', datauri: 'Generate', colorPalette: 'Extract', colorCount: 'Count',
+  gifToImages: 'Extract', gifResizer: 'Resize', gifOptimizer: 'Optimize', splitImage: 'Split',
+};
 
 let idSeq = 0;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -67,9 +87,7 @@ function ControlField({ ctrl, value, onChange }: { ctrl: Control; value: unknown
     return (
       <label className="field">
         <span className="field__label">{ctrl.label}</span>
-        <select className="select" value={String(value)} onChange={(e) => onChange(e.target.value)}>
-          {ctrl.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <Dropdown value={String(value)} options={ctrl.options} onChange={(v) => onChange(v)} ariaLabel={ctrl.label} />
       </label>
     );
   }
@@ -189,6 +207,8 @@ export default function ToolRunner() {
   const isZip = tool?.op === 'zipImages';
   const isRotate = tool?.op === 'rotate';
   const isFlip = tool?.op === 'flip';
+  const isText = tool?.op === 'text';
+  const isWatermark = tool?.op === 'watermark';
   const isPdf = tool?.op === 'imagesToPdf';
   const isGif = tool?.op === 'gifToImages';
   // Tools that take a raw GIF file and show a decoded frame strip instead of a live canvas preview.
@@ -198,6 +218,29 @@ export default function ToolRunner() {
   // Tools that take a raw PDF file (rendered pages / extracted images -> ZIP).
   const isPdfInput = tool?.op === 'pdfToImages' || tool?.op === 'extractImagesFromPdf';
   const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op) && !isGifInput;
+
+  // When switching to a different tool, drop everything from the previous one.
+  useEffect(() => {
+    setJobs((prev) => {
+      prev.forEach((j) => { URL.revokeObjectURL(j.previewUrl); if (j.result) URL.revokeObjectURL(j.result.url); });
+      return [];
+    });
+    setActiveId('');
+    setParamsById({});
+    setCombined(null);
+    setPreviewUrl(null);
+    setPreviewSrc(null);
+    setPreviewSrcs([]);
+    setGifFrames([]);
+    cacheRef.current.clear();
+    initedRef.current.clear();
+  }, [toolId]);
+
+  // Reflect the current tool in the browser tab title.
+  useEffect(() => {
+    if (tool) document.title = `${tool.name} · toolbox`;
+    return () => { document.title = 'toolbox'; };
+  }, [tool]);
 
   const activeJob = useMemo(() => jobs.find((j) => j.id === activeId) ?? jobs[0], [jobs, activeId]);
   const activeParams = isCombine ? comboParams : (activeJob ? paramsById[activeJob.id] ?? defaults : defaults);
@@ -274,8 +317,10 @@ export default function ToolRunner() {
       setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), x: Math.round(previewSrc.fullW * 0.1), y: Math.round(previewSrc.fullH * 0.1), w: Math.round(previewSrc.fullW * 0.8), h: Math.round(previewSrc.fullH * 0.8) } }));
     } else if (tool.op === 'resize' || tool.op === 'canvas-size') {
       setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), width: previewSrc.fullW, height: previewSrc.fullH } }));
+    } else if (isText || isWatermark) {
+      setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), nx: 0.5, ny: 0.5 } }));
     }
-  }, [previewSrc, tool, activeJob, isCombine, isCrop, defaults]);
+  }, [previewSrc, tool, activeJob, isCombine, isCrop, isText, isWatermark, defaults]);
 
   // live preview (debounced)
   useEffect(() => {
@@ -370,7 +415,7 @@ export default function ToolRunner() {
     if (!op?.run && !op?.runFile) return;
     for (const job of jobs.filter((j) => j.status === 'pending' || j.status === 'failed')) {
       const jp = paramsById[job.id] ?? defaults;
-      const fmt = op.outputFormat || (jp.format ? String(jp.format) : 'png');
+      const fmt = op.outputFormat || resolveFormat(jp.format ? String(jp.format) : 'png', job.file);
       const q = (Number(jp.quality ?? 90)) / 100;
       setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'working', error: undefined } : j)));
       // Special file-input ops (e.g. GIF -> frames ZIP) work off the raw File.
@@ -427,8 +472,9 @@ export default function ToolRunner() {
         const filename = res.filename ?? `${tool!.id}.${isPdf ? 'pdf' : 'png'}`;
         setCombined({ status: 'success', blob: res.blob, url: URL.createObjectURL(res.blob), filename });
       } else if (res.canvas) {
-        const blob = await canvasToBlob(res.canvas, outFormat, quality);
-        const ext = FORMAT_BY_ID.get(outFormat)?.ext ?? 'png';
+        const fmt = outFormat === 'auto' ? 'png' : outFormat;
+        const blob = await canvasToBlob(res.canvas, fmt, quality);
+        const ext = FORMAT_BY_ID.get(fmt)?.ext ?? 'png';
         setCombined({ status: 'success', blob, url: URL.createObjectURL(blob), filename: `${tool!.id}.${ext}` });
       }
     } catch (e) {
@@ -483,6 +529,8 @@ export default function ToolRunner() {
   const pendingCount = jobs.filter((j) => j.status === 'pending').length;
   const isWorking = jobs.some((j) => j.status === 'working') || combined?.status === 'working';
   const hasFiles = jobs.length > 0;
+  const verb = VERB[tool.op!] ?? 'Convert';
+  const useOverlay = (isText || (isWatermark && String(activeParams.style) === 'single')) && !!previewSrc;
 
   const controlsBlock = op.controls.length > 0 && (
     <div className="converter__controls converter__controls--stack">
@@ -495,7 +543,7 @@ export default function ToolRunner() {
   const actionsBlock = (
     <div className="controls__actions controls__actions--full">
       <button className="btn btn--dark btn--icon" onClick={convert} disabled={!hasFiles || isWorking || (!isCombine && pendingCount === 0)}>
-        <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `Convert${pendingCount ? ` ${pendingCount}` : ''}`}
+        <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `${verb}${pendingCount ? ` ${pendingCount}` : ''}`}
       </button>
       {!isCombine && jobs.filter((j) => j.result).length > 1 && (
         <button className="btn btn--icon" onClick={downloadAll} disabled={isWorking}><DownloadSimple size={15} weight="bold" /> All</button>
@@ -612,6 +660,8 @@ export default function ToolRunner() {
                 )}
                 {isCrop && previewSrc ? (
                   <CropStage src={previewSrc} params={activeParams} setParam={patchCrop} />
+                ) : useOverlay && previewSrc ? (
+                  <OverlayStage src={previewSrc} params={activeParams} setParam={patchCrop} />
                 ) : isSplit && previewSrc ? (
                   <SplitStage src={previewSrc} params={activeParams} />
                 ) : isCombine ? (

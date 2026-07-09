@@ -11,7 +11,6 @@ const RgbHexPage = lazy(() => import('./pages/RgbHexPage'));
 const RenameImagesPage = lazy(() => import('./pages/RenameImagesPage'));
 const BatchRenamePage = lazy(() => import('./pages/BatchRenamePage'));
 const LivePhotoPage = lazy(() => import('./pages/LivePhotoPage'));
-const WatermarkRemoverPage = lazy(() => import('./pages/WatermarkRemoverPage'));
 const ImageComparatorPage = lazy(() => import('./pages/ImageComparatorPage'));
 
 export default function App() {
@@ -59,15 +58,6 @@ export default function App() {
         element={
           <Suspense fallback={<div className="page page--wide"><div className="loading-panel"><DotsThinking label="Loading tool" /></div></div>}>
             <LivePhotoPage />
-          </Suspense>
-        }
-      />
-      {/* Interactive manual watermark remover (brush + inpaint canvas editor). */}
-      <Route
-        path="/tools/remove-watermark-manual"
-        element={
-          <Suspense fallback={<div className="page page--wide"><div className="loading-panel"><DotsThinking label="Loading tool" /></div></div>}>
-            <WatermarkRemoverPage />
           </Suspense>
         }
       />

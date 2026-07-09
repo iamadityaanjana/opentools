@@ -4,6 +4,7 @@ import {
   TextAa, UploadSimple, DownloadSimple, Trash, X, ArrowLeft, ShieldCheck,
 } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
+import { Dropdown } from '../components/Dropdown';
 import { formatBytes } from '../lib/convert';
 import {
   splitName, joinName, dedupeNames, buildRenamedZip, type NamePair,
@@ -144,10 +145,12 @@ export default function RenameImagesPage() {
             </label>
             <label className="field">
               <span className="field__label">Extension</span>
-              <select className="select" value={extMode} onChange={(e) => setExtMode(e.target.value as ExtMode)}>
-                <option value="keep">Keep original</option>
-                <option value="replace">Replace</option>
-              </select>
+              <Dropdown
+                value={extMode}
+                onChange={(v) => setExtMode(v as ExtMode)}
+                ariaLabel="Extension"
+                options={[{ value: 'keep', label: 'Keep original' }, { value: 'replace', label: 'Replace' }]}
+              />
             </label>
             {extMode === 'replace' && (
               <label className="field">

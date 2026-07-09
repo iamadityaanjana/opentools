@@ -109,7 +109,6 @@ const SEED: Record<string, ToolSeed[]> = {
   edit: [
     ['Add Text'],
     ['Add Watermark'],
-    ['Remove Watermark (manual)'],
     ['Blur Image'],
     ['Sharpen Image'],
     ['Adjust Brightness'],
@@ -268,7 +267,6 @@ const CUSTOM: Record<string, { route: string }> = {
   'rename-images': { route: '/tools/rename-images' },
   'batch-rename': { route: '/tools/batch-rename' },
   'live-photo-extractor': { route: '/tools/live-photo-extractor' },
-  'remove-watermark-manual': { route: '/tools/remove-watermark-manual' },
   'image-comparator': { route: '/tools/image-comparator' },
 };
 

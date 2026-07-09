@@ -51,6 +51,7 @@ let swatchSeq = 0;
 
 export default function ColorPickerPage() {
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgVersion, setImgVersion] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,11 +68,14 @@ export default function ColorPickerPage() {
 
   const hasEyeDropper = typeof window !== 'undefined' && 'EyeDropper' in window;
 
-  const drawImage = useCallback((full: HTMLCanvasElement) => {
-    fullRef.current = full;
+  // Draw the (already-loaded) full-res source into the on-screen canvas. Must
+  // run after the canvas element exists in the DOM (i.e. once imgLoaded=true).
+  const drawToDisplay = useCallback(() => {
+    const full = fullRef.current;
+    const display = displayRef.current;
+    if (!full || !display) return;
     const scale = Math.min(1, MAX_W / full.width);
     scaleRef.current = scale;
-    const display = displayRef.current!;
     display.width = Math.max(1, Math.round(full.width * scale));
     display.height = Math.max(1, Math.round(full.height * scale));
     const ctx = display.getContext('2d')!;
@@ -88,8 +92,9 @@ export default function ColorPickerPage() {
       full.width = imageData.width;
       full.height = imageData.height;
       full.getContext('2d', { willReadFrequently: true })!.putImageData(imageData, 0, 0);
-      drawImage(full);
+      fullRef.current = full;
       setImgLoaded(true);
+      setImgVersion((v) => v + 1);
       setHover(null);
       setLoupe(null);
     } catch (e) {
@@ -97,7 +102,12 @@ export default function ColorPickerPage() {
     } finally {
       setLoading(false);
     }
-  }, [drawImage]);
+  }, []);
+
+  // Paint the canvas once it's mounted / whenever a new image loads.
+  useEffect(() => {
+    if (imgLoaded) drawToDisplay();
+  }, [imgLoaded, imgVersion, drawToDisplay]);
 
   // Sample a pixel from the full-res source given display-space coordinates.
   const sampleAt = useCallback((dispX: number, dispY: number): RGB | null => {

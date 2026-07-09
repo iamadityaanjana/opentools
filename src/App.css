@@ -471,15 +471,25 @@ a.megalink:hover {
   background-size: cover;
   background-position: center;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: visible;
   touch-action: none;
   max-width: 100%;
+}
+.crop-mask {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  pointer-events: none;
+}
+.crop-shadow {
+  position: absolute;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
 }
 .crop-box {
   position: absolute;
   cursor: move;
   outline: 2px solid #fff;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
   box-sizing: border-box;
 }
 .crop-stage.is-dragging .crop-box {
@@ -501,6 +511,124 @@ a.megalink:hover {
   font-size: 12px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- Draggable text / watermark overlay ---- */
+.overlay-stage {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+.overlay-stage.is-dragging {
+  cursor: grabbing;
+}
+.overlay-text {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Custom dropdown (replaces native select) ---- */
+.dd {
+  position: relative;
+  width: 100%;
+}
+.dd__btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--bg, #fff);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.dd__btn:hover {
+  border-color: #c7c4bc;
+}
+.dd--open .dd__btn {
+  border-color: #2f6df6;
+  box-shadow: 0 0 0 3px rgba(47, 109, 246, 0.14);
+}
+.dd__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dd__caret {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+.dd--open .dd__caret {
+  transform: rotate(180deg);
+}
+.dd__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.14);
+  max-height: 280px;
+  overflow-y: auto;
+}
+.dd__opt {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+.dd__opt:hover {
+  background: #eceae4;
+}
+.dd__opt.is-active {
+  color: #2f6df6;
+  font-weight: 600;
+}
+.dd__group,
+.dd__group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dd__grouphead {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #9a978f;
+  padding: 8px 10px 4px;
 }
 
 /* ---- Combine reorder strip ---- */
