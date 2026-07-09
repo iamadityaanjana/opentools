@@ -101,13 +101,22 @@ export const OPS: Record<string, ImageOp> = {
   // ---- Resize & crop / geometry ----
   resize: {
     controls: [
-      { key: 'width', label: 'Width (px)', type: 'number', min: 1, def: 800 },
-      { key: 'height', label: 'Height (px)', type: 'number', min: 1, def: 600 },
+      { key: 'unit', label: 'Resize by', type: 'select', def: 'px', options: [
+        { value: 'px', label: 'Pixels' }, { value: 'percent', label: 'Percentage' },
+      ] },
+      { key: 'width', label: 'Width', type: 'number', min: 1, def: 800 },
+      { key: 'height', label: 'Height', type: 'number', min: 1, def: 600 },
       { key: 'keepAspect', label: 'Keep aspect ratio', type: 'checkbox', def: true },
     ],
     run: (src, p) => {
-      let w = Number(p.width), h = Number(p.height);
-      if (p.keepAspect) { const s = Math.min(w / src.width, h / src.height); w = src.width * s; h = src.height * s; }
+      let w: number, h: number;
+      if (p.unit === 'percent') {
+        if (p.keepAspect) { const s = Number(p.width) / 100; w = src.width * s; h = src.height * s; }
+        else { w = (src.width * Number(p.width)) / 100; h = (src.height * Number(p.height)) / 100; }
+      } else {
+        w = Number(p.width); h = Number(p.height);
+        if (p.keepAspect) { const s = Math.min(w / src.width, h / src.height); w = src.width * s; h = src.height * s; }
+      }
       const [c, ctx] = make(w, h);
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(src, 0, 0, c.width, c.height);

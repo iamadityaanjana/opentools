@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   UploadSimple, DownloadSimple, Lightning, Trash, X, ArrowLeft, Copy, Check, ImageBroken, DotsSixVertical,
+  ArrowClockwise, ArrowCounterClockwise, FlipHorizontal, FlipVertical,
 } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
 import { CropStage, type PreviewSource } from '../components/CropStage';
@@ -24,7 +25,6 @@ interface Job {
   error?: string;
 }
 
-// Tools that produce no visual output → no live preview.
 const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount']);
 const PREVIEW_MAX = 900;
 
@@ -113,39 +113,44 @@ export default function ToolRunner() {
   const tool = toolId ? TOOL_BY_ID.get(toolId) : undefined;
   const op = tool?.op ? OPS[tool.op] : undefined;
 
-  const [params, setParams] = useState<Params>(() => {
+  const defaults = useMemo<Params>(() => {
     const p: Params = {};
     op?.controls.forEach((c) => { p[c.key] = c.def; });
     return p;
-  });
+  }, [op]);
+
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [activeId, setActiveId] = useState<string>('');
+  const [paramsById, setParamsById] = useState<Record<string, Params>>({});
+  const [comboParams, setComboParams] = useState<Params>(defaults);
   const [combined, setCombined] = useState<OpResult & { url?: string; blob?: Blob; filename?: string; status?: JobStatus; error?: string } | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ---- Preview state ----
   const [previewSrc, setPreviewSrc] = useState<PreviewSource | null>(null);
   const [previewSrcs, setPreviewSrcs] = useState<PreviewSource[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBusy, setPreviewBusy] = useState(false);
   const cacheRef = useRef<Map<string, PreviewSource>>(new Map());
-  const initedRef = useRef<string>('');
+  const initedRef = useRef<Set<string>>(new Set());
   const reorderFrom = useRef<number>(-1);
 
   const isCombine = tool?.mode === 'combine';
   const isCrop = tool?.op === 'crop';
+  const isRotate = tool?.op === 'rotate';
+  const isFlip = tool?.op === 'flip';
   const isPdf = tool?.op === 'imagesToPdf';
   const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op);
+
+  const activeJob = useMemo(() => jobs.find((j) => j.id === activeId) ?? jobs[0], [jobs, activeId]);
+  const activeParams = isCombine ? comboParams : (activeJob ? paramsById[activeJob.id] ?? defaults : defaults);
 
   const outFormat = useMemo(() => {
     if (!op) return 'png';
     if (op.outputFormat) return op.outputFormat;
-    if (params.format) return String(params.format);
+    if (activeParams.format) return String(activeParams.format);
     return 'png';
-  }, [op, params.format]);
-
-  const setP = useCallback((k: string, v: string | number | boolean) => setParams((prev) => ({ ...prev, [k]: v })), []);
-  const patchP = useCallback((patch: Partial<Params>) => setParams((prev) => ({ ...prev, ...patch } as Params)), []);
+  }, [op, activeParams.format]);
 
   const getPreviewSource = useCallback(async (file: File): Promise<PreviewSource> => {
     const key = `${file.name}:${file.size}:${file.lastModified}`;
@@ -167,14 +172,23 @@ export default function ToolRunner() {
   const addFiles = useCallback((files: FileList | File[]) => {
     const arr = Array.from(files);
     const newJobs: Job[] = arr.map((file) => ({ id: `j-${idSeq++}`, file, previewUrl: URL.createObjectURL(file), status: 'pending' as JobStatus }));
+    setParamsById((prev) => {
+      const next = { ...prev };
+      newJobs.forEach((j) => { next[j.id] = { ...defaults }; });
+      return next;
+    });
     setJobs((prev) => [...newJobs, ...prev]);
-  }, []);
+    setActiveId((cur) => cur || newJobs[0]?.id || '');
+  }, [defaults]);
 
   const onDrop = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }, [addFiles]);
 
-  const quality = (Number(params.quality ?? 90)) / 100;
+  // keep activeId valid
+  useEffect(() => {
+    if (jobs.length && !jobs.some((j) => j.id === activeId)) setActiveId(jobs[0].id);
+  }, [jobs, activeId]);
 
-  // ---- Build preview sources when files/order change ----
+  // build active preview source (each) / all preview sources (combine)
   useEffect(() => {
     if (!previewable) return;
     let cancelled = false;
@@ -183,32 +197,30 @@ export default function ToolRunner() {
         if (isCombine) {
           const srcs = await Promise.all(jobs.map((j) => getPreviewSource(j.file)));
           if (!cancelled) setPreviewSrcs(srcs);
-        } else if (jobs.length > 0) {
-          const src = await getPreviewSource(jobs[jobs.length - 1].file);
+        } else if (activeJob) {
+          const src = await getPreviewSource(activeJob.file);
           if (!cancelled) setPreviewSrc(src);
         } else {
-          setPreviewSrc(null);
-          setPreviewUrl(null);
+          setPreviewSrc(null); setPreviewUrl(null);
         }
-      } catch { /* preview is best-effort */ }
+      } catch { /* best-effort */ }
     })();
     return () => { cancelled = true; };
-  }, [jobs, isCombine, previewable, getPreviewSource]);
+  }, [jobs, activeJob, isCombine, previewable, getPreviewSource]);
 
-  // ---- Auto-init dimension params from the loaded image ----
+  // auto-init dimension params for the active image (once per job)
   useEffect(() => {
-    if (!previewSrc || !tool) return;
-    const key = `${tool.op}:${previewSrc.fullW}x${previewSrc.fullH}`;
-    if (initedRef.current === key) return;
-    initedRef.current = key;
+    if (isCombine || !previewSrc || !tool || !activeJob) return;
+    if (initedRef.current.has(activeJob.id)) return;
+    initedRef.current.add(activeJob.id);
     if (isCrop) {
-      patchP({ x: Math.round(previewSrc.fullW * 0.1), y: Math.round(previewSrc.fullH * 0.1), w: Math.round(previewSrc.fullW * 0.8), h: Math.round(previewSrc.fullH * 0.8) });
+      setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), x: Math.round(previewSrc.fullW * 0.1), y: Math.round(previewSrc.fullH * 0.1), w: Math.round(previewSrc.fullW * 0.8), h: Math.round(previewSrc.fullH * 0.8) } }));
     } else if (tool.op === 'resize' || tool.op === 'canvas-size') {
-      patchP({ width: previewSrc.fullW, height: previewSrc.fullH });
+      setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), width: previewSrc.fullW, height: previewSrc.fullH } }));
     }
-  }, [previewSrc, tool, isCrop, patchP]);
+  }, [previewSrc, tool, activeJob, isCombine, isCrop, defaults]);
 
-  // ---- Live result preview (debounced) ----
+  // live preview (debounced)
   useEffect(() => {
     if (!previewable || isCrop) return;
     let cancelled = false;
@@ -217,12 +229,12 @@ export default function ToolRunner() {
         if (isCombine) {
           if (isPdf || previewSrcs.length === 0 || !op?.runCombine) return;
           setPreviewBusy(true);
-          const res = await op.runCombine(previewSrcs.map((s) => s.canvas), params);
+          const res = await op.runCombine(previewSrcs.map((s) => s.canvas), comboParams);
           if (!cancelled && res.canvas) setPreviewUrl(res.canvas.toDataURL('image/png'));
         } else {
           if (!previewSrc || !op?.run) return;
           setPreviewBusy(true);
-          const res = await op.run(previewSrc.canvas, params);
+          const res = await op.run(previewSrc.canvas, activeParams);
           if (!cancelled && res.canvas) setPreviewUrl(res.canvas.toDataURL('image/png'));
         }
       } catch { /* ignore */ } finally {
@@ -230,15 +242,47 @@ export default function ToolRunner() {
       }
     }, 120);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [params, previewSrc, previewSrcs, previewable, isCrop, isCombine, isPdf, op]);
+  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isCombine, isPdf, op]);
+
+  // ---- param setters ----
+  const setParam = useCallback((key: string, val: string | number | boolean) => {
+    if (isCombine) { setComboParams((p) => ({ ...p, [key]: val })); return; }
+    if (!activeJob) return;
+    if (tool?.op === 'resize' && key === 'unit') {
+      const patch: Params = val === 'percent'
+        ? { unit: 'percent', width: 100, height: 100, keepAspect: true }
+        : { unit: 'px', width: previewSrc?.fullW ?? 800, height: previewSrc?.fullH ?? 600, keepAspect: true };
+      setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), ...patch } }));
+      return;
+    }
+    setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), [key]: val } }));
+  }, [isCombine, activeJob, tool, previewSrc, defaults]);
+
+  const patchCrop = useCallback((patch: Partial<Params>) => {
+    if (!activeJob) return;
+    setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), ...patch } as Params }));
+  }, [activeJob, defaults]);
+
+  const rotateStep = useCallback((dir: 1 | -1) => {
+    const order = [90, 180, 270];
+    let idx = order.indexOf(Number(activeParams.angle ?? 90));
+    if (idx < 0) idx = 0;
+    idx = (idx + dir + order.length) % order.length;
+    setParam('angle', String(order[idx]));
+  }, [activeParams.angle, setParam]);
+
+  const quality = (Number(activeParams.quality ?? 90)) / 100;
 
   const runEach = useCallback(async () => {
     if (!op?.run) return;
     for (const job of jobs.filter((j) => j.status === 'pending' || j.status === 'failed')) {
+      const jp = paramsById[job.id] ?? defaults;
+      const fmt = op.outputFormat || (jp.format ? String(jp.format) : 'png');
+      const q = (Number(jp.quality ?? 90)) / 100;
       setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'working', error: undefined } : j)));
       try {
         const canvas = await fileToCanvas(job.file);
-        const res = await op.run(canvas, params);
+        const res = await op.run(canvas, jp);
         const base = job.file.name.replace(/\.[^.]+$/, '') || 'image';
         if (res.text !== undefined) {
           const blob = new Blob([res.text], { type: 'text/plain' });
@@ -246,8 +290,8 @@ export default function ToolRunner() {
         } else if (res.swatches) {
           setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'success', error: res.swatches!.join('  ') } : j)));
         } else if (res.canvas) {
-          const blob = await canvasToBlob(res.canvas, outFormat, quality);
-          const ext = FORMAT_BY_ID.get(outFormat)?.ext ?? 'png';
+          const blob = await canvasToBlob(res.canvas, fmt, q);
+          const ext = FORMAT_BY_ID.get(fmt)?.ext ?? 'png';
           setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, status: 'success', result: { blob, url: URL.createObjectURL(blob), filename: `${base}.${ext}` } } : j)));
         }
       } catch (e) {
@@ -255,14 +299,14 @@ export default function ToolRunner() {
       }
       await sleep(10);
     }
-  }, [op, jobs, params, outFormat, quality]);
+  }, [op, jobs, paramsById, defaults]);
 
   const runCombine = useCallback(async () => {
     if (!op?.runCombine || jobs.length === 0) return;
     setCombined({ status: 'working' });
     try {
       const canvases = await Promise.all(jobs.map((j) => fileToCanvas(j.file)));
-      const res = await op.runCombine(canvases, params);
+      const res = await op.runCombine(canvases, comboParams);
       if (res.blob) {
         setCombined({ status: 'success', blob: res.blob, url: URL.createObjectURL(res.blob), filename: `${tool!.id}.${isPdf ? 'pdf' : 'png'}` });
       } else if (res.canvas) {
@@ -273,7 +317,7 @@ export default function ToolRunner() {
     } catch (e) {
       setCombined({ status: 'failed', error: e instanceof Error ? e.message : String(e) });
     }
-  }, [op, jobs, params, outFormat, quality, tool, isPdf]);
+  }, [op, jobs, comboParams, outFormat, quality, tool, isPdf]);
 
   const convert = isCombine ? runCombine : runEach;
 
@@ -284,20 +328,24 @@ export default function ToolRunner() {
     }
   }, [jobs]);
 
+  const removeJob = useCallback((id: string) => {
+    setJobs((prev) => {
+      const j = prev.find((x) => x.id === id);
+      if (j) { URL.revokeObjectURL(j.previewUrl); if (j.result) URL.revokeObjectURL(j.result.url); }
+      return prev.filter((x) => x.id !== id);
+    });
+    initedRef.current.delete(id);
+  }, []);
+
   const clearAll = useCallback(() => {
     jobs.forEach((j) => { URL.revokeObjectURL(j.previewUrl); if (j.result) URL.revokeObjectURL(j.result.url); });
-    setJobs([]); setCombined(null); setPreviewUrl(null); setPreviewSrc(null); setPreviewSrcs([]); initedRef.current = '';
+    setJobs([]); setCombined(null); setPreviewUrl(null); setPreviewSrc(null); setPreviewSrcs([]); initedRef.current.clear();
   }, [jobs]);
 
   const reorder = useCallback((to: number) => {
     const from = reorderFrom.current;
     if (from < 0 || from === to) return;
-    setJobs((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
-    });
+    setJobs((prev) => { const next = [...prev]; const [m] = next.splice(from, 1); next.splice(to, 0, m); return next; });
     reorderFrom.current = -1;
   }, []);
 
@@ -317,6 +365,26 @@ export default function ToolRunner() {
   const pendingCount = jobs.filter((j) => j.status === 'pending').length;
   const isWorking = jobs.some((j) => j.status === 'working') || combined?.status === 'working';
   const hasFiles = jobs.length > 0;
+
+  const controlsBlock = op.controls.length > 0 && (
+    <div className="converter__controls converter__controls--stack">
+      {op.controls.map((c) => (
+        <ControlField key={c.key} ctrl={c} value={activeParams[c.key]} onChange={(v) => setParam(c.key, v)} />
+      ))}
+    </div>
+  );
+
+  const actionsBlock = (
+    <div className="controls__actions controls__actions--full">
+      <button className="btn btn--dark btn--icon" onClick={convert} disabled={!hasFiles || isWorking || (!isCombine && pendingCount === 0)}>
+        <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `Convert${pendingCount ? ` ${pendingCount}` : ''}`}
+      </button>
+      {!isCombine && jobs.filter((j) => j.result).length > 1 && (
+        <button className="btn btn--icon" onClick={downloadAll} disabled={isWorking}><DownloadSimple size={15} weight="bold" /> All</button>
+      )}
+      {hasFiles && <button className="btn btn--ghost btn--icon" onClick={clearAll} disabled={isWorking}><Trash size={15} /> Clear</button>}
+    </div>
+  );
 
   return (
     <div className="page page--wide">
@@ -339,84 +407,107 @@ export default function ToolRunner() {
         <Link className="btn btn--pill btn--icon" to={GROUP_HOME[cat.group]}><ArrowLeft size={15} weight="bold" /> {GROUP_LABEL[cat.group]}</Link>
       </div>
 
-      <div className={`editor ${previewable && hasFiles ? 'editor--split' : ''}`}>
-        <div className="panel editor__side">
-          {op.controls.length > 0 && (
-            <div className="converter__controls converter__controls--stack">
-              {op.controls.map((c) => (
-                <ControlField key={c.key} ctrl={c} value={params[c.key]} onChange={(v) => setP(c.key, v)} />
+      {/* Upload box */}
+      <div
+        className={`dropzone ${dragging ? 'dropzone--active' : ''} ${hasFiles ? 'dropzone--compact' : ''}`}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        onClick={() => inputRef.current?.click()}
+        role="button" tabIndex={0}
+      >
+        <input ref={inputRef} type="file" multiple accept="image/*,.heic,.heif,.tif,.tiff,.avif,.svg,.ico,.jp2" hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
+        <div className="dropzone__inner">
+          <UploadSimple size={hasFiles ? 22 : 34} weight="light" className="dropzone__icon" />
+          <p className="dropzone__title">{hasFiles ? 'Add more images' : <>Drop image{isCombine ? 's' : '(s)'} here <span className="muted">or click to browse</span></>}</p>
+          {!hasFiles && <p className="dropzone__hint">{isCombine ? 'All images combine into one output.' : 'Editor & live preview appear below once you add an image.'}</p>}
+        </div>
+      </div>
+
+      {/* Editor appears only once there's an image */}
+      {hasFiles && (
+        <div className="editor2">
+          {/* image selector (each-mode, >1) */}
+          {!isCombine && jobs.length > 1 && (
+            <div className="imgselect">
+              {jobs.map((j) => (
+                <button
+                  key={j.id}
+                  className={`imgselect__item ${j.id === activeJob?.id ? 'is-active' : ''}`}
+                  onClick={() => setActiveId(j.id)}
+                  title={j.file.name}
+                >
+                  <img src={j.previewUrl} alt="" />
+                  <span className="imgselect__x" onClick={(e) => { e.stopPropagation(); removeJob(j.id); }}><X size={11} /></span>
+                </button>
               ))}
             </div>
           )}
-          <div className="controls__actions controls__actions--full">
-            <button className="btn btn--dark btn--icon" onClick={convert} disabled={!hasFiles || isWorking || (!isCombine && pendingCount === 0)}>
-              <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `Convert${pendingCount ? ` ${pendingCount}` : ''}`}
-            </button>
-            {!isCombine && jobs.filter((j) => j.result).length > 1 && (
-              <button className="btn btn--icon" onClick={downloadAll} disabled={isWorking}><DownloadSimple size={15} weight="bold" /> All</button>
-            )}
-            {hasFiles && <button className="btn btn--ghost btn--icon" onClick={clearAll} disabled={isWorking}><Trash size={15} /> Clear</button>}
-          </div>
 
-          <div
-            className={`dropzone ${dragging ? 'dropzone--active' : ''} ${hasFiles ? 'dropzone--compact' : ''}`}
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={onDrop}
-            onClick={() => inputRef.current?.click()}
-            role="button" tabIndex={0}
-          >
-            <input ref={inputRef} type="file" multiple accept="image/*,.heic,.heif,.tif,.tiff,.avif,.svg,.ico,.jp2" hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
-            <div className="dropzone__inner">
-              <UploadSimple size={hasFiles ? 22 : 34} weight="light" className="dropzone__icon" />
-              <p className="dropzone__title">{hasFiles ? 'Add more' : <>Drop image{isCombine ? 's' : '(s)'} here <span className="muted">or click to browse</span></>}</p>
-              {!hasFiles && <p className="dropzone__hint">{isCombine ? 'All images combine into one output.' : 'Preview updates live; conversion runs at full resolution.'}</p>}
+          <div className={`editor2__body ${previewable ? 'editor2__body--split' : ''}`}>
+            {/* Preview / stage */}
+            {previewable && (
+              <div className="editor__preview">
+                <div className="preview-head">
+                  <span className="preview-head__label">Live preview {previewBusy && <span className="preview-dot" />}</span>
+                  <span className="preview-head__note">reduced-res preview · full quality on convert</span>
+                </div>
+                {(isRotate || isFlip) && (
+                  <div className="preview-tools">
+                    {isRotate && (
+                      <>
+                        <button className="ptool" onClick={() => rotateStep(-1)} title="Rotate 90° left"><ArrowCounterClockwise size={16} weight="bold" /></button>
+                        <button className="ptool" onClick={() => rotateStep(1)} title="Rotate 90° right"><ArrowClockwise size={16} weight="bold" /></button>
+                        <span className="ptool__val">{String(activeParams.angle ?? 90)}°</span>
+                      </>
+                    )}
+                    {isFlip && (
+                      <>
+                        <button className={`ptool ${activeParams.axis === 'h' ? 'is-active' : ''}`} onClick={() => setParam('axis', 'h')} title="Flip horizontal"><FlipHorizontal size={16} weight="bold" /></button>
+                        <button className={`ptool ${activeParams.axis === 'v' ? 'is-active' : ''}`} onClick={() => setParam('axis', 'v')} title="Flip vertical"><FlipVertical size={16} weight="bold" /></button>
+                      </>
+                    )}
+                  </div>
+                )}
+                {isCrop && previewSrc ? (
+                  <CropStage src={previewSrc} params={activeParams} setParam={patchCrop} />
+                ) : isCombine ? (
+                  <div className="combine-editor">
+                    <div className="reorder" onDragOver={(e) => e.preventDefault()}>
+                      {jobs.map((j, i) => (
+                        <div key={j.id} className="reorder__item" draggable onDragStart={() => { reorderFrom.current = i; }} onDrop={() => reorder(i)} title="Drag to reorder">
+                          <DotsSixVertical size={14} className="reorder__grip" />
+                          <img className="reorder__thumb" src={j.previewUrl} alt="" />
+                          <span className="reorder__idx">{i + 1}</span>
+                          <button className="job__remove" onClick={() => removeJob(j.id)} aria-label="Remove"><X size={12} /></button>
+                        </div>
+                      ))}
+                    </div>
+                    {isPdf ? (
+                      <p className="dropzone__hint">Drag thumbnails to set page order, then Generate the PDF.</p>
+                    ) : previewUrl ? (
+                      <img className="preview-img" src={previewUrl} alt="preview" />
+                    ) : null}
+                  </div>
+                ) : previewUrl ? (
+                  <img className="preview-img" src={previewUrl} alt="preview" />
+                ) : (
+                  <div className="preview-empty">Rendering…</div>
+                )}
+              </div>
+            )}
+
+            {/* Controls (below the upload box) */}
+            <div className="editor2__controls">
+              {!isCombine && jobs.length > 1 && activeJob && (
+                <div className="editor2__active">Editing: <strong>{activeJob.file.name}</strong></div>
+              )}
+              {controlsBlock}
+              {actionsBlock}
             </div>
           </div>
         </div>
-
-        {previewable && hasFiles && (
-          <div className="editor__preview">
-            <div className="preview-head">
-              <span className="preview-head__label">Live preview {previewBusy && <span className="preview-dot" />}</span>
-              <span className="preview-head__note">reduced-res preview · full quality on convert</span>
-            </div>
-
-            {isCrop && previewSrc ? (
-              <CropStage src={previewSrc} params={params} setParam={patchP} />
-            ) : isCombine ? (
-              <div className="combine-editor">
-                <div className="reorder" onDragOver={(e) => e.preventDefault()}>
-                  {jobs.map((j, i) => (
-                    <div
-                      key={j.id}
-                      className="reorder__item"
-                      draggable
-                      onDragStart={() => { reorderFrom.current = i; }}
-                      onDrop={() => reorder(i)}
-                      title="Drag to reorder"
-                    >
-                      <DotsSixVertical size={14} className="reorder__grip" />
-                      <img className="reorder__thumb" src={j.previewUrl} alt="" />
-                      <span className="reorder__idx">{i + 1}</span>
-                      <button className="job__remove" onClick={() => setJobs((prev) => prev.filter((x) => x.id !== j.id))} aria-label="Remove"><X size={12} /></button>
-                    </div>
-                  ))}
-                </div>
-                {isPdf ? (
-                  <p className="dropzone__hint">Drag thumbnails to set page order, then Generate the PDF.</p>
-                ) : previewUrl ? (
-                  <img className="preview-img" src={previewUrl} alt="preview" />
-                ) : null}
-              </div>
-            ) : previewUrl ? (
-              <img className="preview-img" src={previewUrl} alt="preview" />
-            ) : (
-              <div className="preview-empty">Rendering…</div>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       {isCombine && combined && (
         <div className="combine-result">
@@ -454,7 +545,7 @@ export default function ToolRunner() {
                     {job.result && !isTextTool && (
                       <a className="btn btn--dark btn--icon btn--sm" href={job.result.url} download={job.result.filename}><DownloadSimple size={14} weight="bold" /> Download</a>
                     )}
-                    {job.status !== 'working' && <button className="job__remove" onClick={() => setJobs((prev) => prev.filter((x) => x.id !== job.id))} aria-label="Remove"><X size={14} /></button>}
+                    {job.status !== 'working' && <button className="job__remove" onClick={() => removeJob(job.id)} aria-label="Remove"><X size={14} /></button>}
                   </div>
                 </div>
               </motion.li>

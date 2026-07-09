@@ -1,11 +1,7 @@
 import { Link } from 'react-router-dom';
 import { CaretDown } from '@phosphor-icons/react';
 import {
-  CATEGORY_BY_ID,
-  TOOLS,
-  PRIMARY_NAV_CATEGORIES,
-  OTHER_NAV_CATEGORIES,
-  type Tool,
+  CATEGORY_BY_ID, TOOLS, PRIMARY_NAV_CATEGORIES, OTHER_NAV_CATEGORIES, type Tool,
 } from '../tools/catalog';
 
 function preload(route?: string) {
@@ -36,35 +32,34 @@ function toolsIn(catId: string) {
   return TOOLS.filter((t) => t.categoryId === catId);
 }
 
-/** Single-category dropdown (one column of tools). */
+/** Single-category dropdown surfaced directly in the nav. */
 function CategoryMenu({ catId }: { catId: string }) {
-  const cat = CATEGORY_BY_ID.get(catId)!;
+  const cat = CATEGORY_BY_ID.get(catId);
+  if (!cat) return null;
   return (
-    <div className="nav__item nav__item--drop">
+    <div className="nav__item">
       <button className="nav__trigger">
         {cat.label} <CaretDown size={12} weight="bold" />
       </button>
       <div className="dropdown" role="menu">
-        <ul className="megacol__list">
-          {toolsIn(catId).map((t) => (
-            <ToolLink key={t.id} t={t} />
-          ))}
+        <ul className="dropdown__list">
+          {toolsIn(catId).map((t) => <ToolLink key={t.id} t={t} />)}
         </ul>
       </div>
     </div>
   );
 }
 
-/** "Other tools" — multi-column mega menu of the remaining categories. */
-function OtherMenu() {
+/** Mega menu holding the remaining categories, grouped in columns. */
+function OtherMenu({ label, catIds }: { label: string; catIds: string[] }) {
   return (
     <div className="nav__item nav__item--mega">
       <button className="nav__trigger">
-        Other tools <CaretDown size={12} weight="bold" />
+        {label} <CaretDown size={12} weight="bold" />
       </button>
       <div className="megamenu" role="menu">
         <div className="megamenu__grid">
-          {OTHER_NAV_CATEGORIES.map((catId) => {
+          {catIds.map((catId) => {
             const cat = CATEGORY_BY_ID.get(catId)!;
             return (
               <div key={catId} className="megacol">
@@ -73,9 +68,7 @@ function OtherMenu() {
                   {cat.label}
                 </div>
                 <ul className="megacol__list">
-                  {toolsIn(catId).map((t) => (
-                    <ToolLink key={t.id} t={t} />
-                  ))}
+                  {toolsIn(catId).map((t) => <ToolLink key={t.id} t={t} />)}
                 </ul>
               </div>
             );
@@ -88,12 +81,7 @@ function OtherMenu() {
 
 function BookCall() {
   return (
-    <a
-      className="btn btn--pill"
-      href="http://cal.com/adityaanjana"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
+    <a className="btn btn--pill" href="http://cal.com/adityaanjana" target="_blank" rel="noopener noreferrer">
       Book a call
     </a>
   );
@@ -101,8 +89,9 @@ function BookCall() {
 
 /**
  * Shared top navigation.
- * - `minimal` (landing): logo + Book a call only — no tool menus.
- * - default (tool pages): category dropdowns + PDF + Other tools.
+ * - `minimal` (landing): logo + Book a call only.
+ * - default (tool pages): common image categories by name, a PDF menu,
+ *   and an "Other tools" mega menu holding the rest.
  */
 export function TopNav({ minimal = false }: { minimal?: boolean }) {
   return (
@@ -117,11 +106,9 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
         </div>
       ) : (
         <div className="nav">
-          {PRIMARY_NAV_CATEGORIES.map((id) => (
-            <CategoryMenu key={id} catId={id} />
-          ))}
+          {PRIMARY_NAV_CATEGORIES.map((id) => <CategoryMenu key={id} catId={id} />)}
           <CategoryMenu catId="pdf" />
-          <OtherMenu />
+          <OtherMenu label="Other tools" catIds={OTHER_NAV_CATEGORIES} />
           <BookCall />
         </div>
       )}
