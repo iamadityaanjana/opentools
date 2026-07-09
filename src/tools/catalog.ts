@@ -265,6 +265,8 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
 const CUSTOM: Record<string, { route: string }> = {
   'color-picker': { route: '/tools/color-picker' },
   'rgb-hex-converter': { route: '/tools/rgb-hex-converter' },
+  'rename-images': { route: '/tools/rename-images' },
+  'batch-rename': { route: '/tools/batch-rename' },
 };
 
 for (const t of TOOLS) {
