@@ -868,7 +868,7 @@ export const OPS: Record<string, ImageOp> = {
       const dpi = Math.max(1, Math.round(Number(p.dpi) || 72));
       const { bytes, format } = setImageDpi(buf, dpi);
       const mime = format === 'png' ? 'image/png' : 'image/jpeg';
-      const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: mime });
+      const blob = new Blob([bytes as BlobPart], { type: mime });
       const base = file.name.replace(/\.[^.]+$/, '') || 'image';
       const ext = format === 'png' ? 'png' : 'jpg';
       return { blob, filename: `${base}-${dpi}dpi.${ext}` };

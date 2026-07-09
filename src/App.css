@@ -598,6 +598,46 @@ a.megalink:hover {
   color: var(--ink);
 }
 
+/* ---- EXIF metadata table ---- */
+.exif {
+  margin-top: 8px;
+  width: 100%;
+}
+.exif__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.exif__table th,
+.exif__table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.exif__table th {
+  width: 40%;
+  font-weight: 600;
+  color: var(--muted, #666);
+  white-space: nowrap;
+}
+.exif__table td {
+  word-break: break-word;
+  font-family: monospace;
+}
+.exif__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.exif-empty {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted, #666);
+  font-style: italic;
+}
+
 /* ---- Buttons ---- */
 .btn {
   font-family: var(--serif);

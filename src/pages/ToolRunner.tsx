@@ -109,6 +109,51 @@ function CopyBox({ text }: { text: string }) {
   );
 }
 
+interface ExifPayloadView {
+  rows: { label: string; value: string }[];
+  gps?: { lat: number; lon: number };
+  raw: Record<string, unknown>;
+  empty: boolean;
+}
+
+function ExifResult({ json }: { json: string }) {
+  const [done, setDone] = useState(false);
+  let data: ExifPayloadView | null = null;
+  try { data = JSON.parse(json) as ExifPayloadView; } catch { data = null; }
+  if (!data) return <div className="job__error">Could not read metadata.</div>;
+  if (data.empty || data.rows.length === 0) {
+    return <div className="exif-empty">No EXIF / metadata found in this image.</div>;
+  }
+  const copyJson = () => {
+    navigator.clipboard.writeText(JSON.stringify(data!.raw, null, 2));
+    setDone(true); setTimeout(() => setDone(false), 1500);
+  };
+  return (
+    <div className="exif">
+      <table className="exif__table">
+        <tbody>
+          {data.rows.map((r, i) => (
+            <tr key={i}>
+              <th>{r.label}</th>
+              <td>{r.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="exif__actions">
+        {data.gps && (
+          <a className="btn btn--icon btn--sm" href={`https://www.google.com/maps?q=${data.gps.lat},${data.gps.lon}`} target="_blank" rel="noopener noreferrer">
+            View location on map
+          </a>
+        )}
+        <button className="btn btn--dark btn--icon btn--sm" onClick={copyJson}>
+          {done ? <Check size={14} weight="bold" /> : <Copy size={14} />} {done ? 'Copied' : 'Copy as JSON'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ToolRunner() {
   const { toolId } = useParams();
   const tool = toolId ? TOOL_BY_ID.get(toolId) : undefined;
@@ -433,6 +478,7 @@ export default function ToolRunner() {
   const cat = CATEGORY_BY_ID.get(tool.categoryId)!;
   const Icon = cat.icon;
   const isTextTool = ['base64', 'datauri', 'colorCount'].includes(tool.op!);
+  const isExif = tool.op === 'viewExif';
   const isSwatchTool = tool.op === 'colorPalette';
   const pendingCount = jobs.filter((j) => j.status === 'pending').length;
   const isWorking = jobs.some((j) => j.status === 'working') || combined?.status === 'working';

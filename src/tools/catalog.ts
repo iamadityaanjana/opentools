@@ -259,6 +259,14 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'change-background-color': { op: 'bgcolor' },
 };
 
+// Interactive tools that live on their own dedicated page (see App.tsx routes)
+// rather than the generic ops-engine runner. They have no `op`; flipping them
+// live just needs a `route` + `status`.
+const CUSTOM: Record<string, { route: string }> = {
+  'color-picker': { route: '/tools/color-picker' },
+  'rgb-hex-converter': { route: '/tools/rgb-hex-converter' },
+};
+
 for (const t of TOOLS) {
   const impl = IMPL[t.id];
   if (impl) {
@@ -266,6 +274,12 @@ for (const t of TOOLS) {
     t.op = impl.op;
     t.mode = impl.mode;
     t.route = `/tools/${t.id}`;
+    continue;
+  }
+  const custom = CUSTOM[t.id];
+  if (custom) {
+    t.status = 'live';
+    t.route = custom.route;
   }
 }
 

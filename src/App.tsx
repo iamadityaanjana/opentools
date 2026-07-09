@@ -6,12 +6,31 @@ import { DotsThinking } from './components/Thinking';
 import './App.css';
 
 const ToolRunner = lazy(() => import('./pages/ToolRunner'));
+const ColorPickerPage = lazy(() => import('./pages/ColorPickerPage'));
+const RgbHexPage = lazy(() => import('./pages/RgbHexPage'));
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/convert" element={<ConvertPage />} />
+      {/* Interactive color tools have dedicated pages (not the generic runner). */}
+      <Route
+        path="/tools/color-picker"
+        element={
+          <Suspense fallback={<div className="page page--wide"><div className="loading-panel"><DotsThinking label="Loading tool" /></div></div>}>
+            <ColorPickerPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/tools/rgb-hex-converter"
+        element={
+          <Suspense fallback={<div className="page page--wide"><div className="loading-panel"><DotsThinking label="Loading tool" /></div></div>}>
+            <RgbHexPage />
+          </Suspense>
+        }
+      />
       <Route
         path="/tools/:toolId"
         element={
