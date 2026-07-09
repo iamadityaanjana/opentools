@@ -453,6 +453,31 @@ export const OPS: Record<string, ImageOp> = {
     },
   },
 
+  // ---- AI background removal (runs an ONNX model in-browser, lazy-loaded) ----
+  removeBackground: {
+    outputFormat: 'png',
+    controls: [
+      { key: 'bg', label: 'Background', type: 'select', def: 'transparent', options: [
+        { value: 'transparent', label: 'Transparent (PNG)' }, { value: 'color', label: 'Solid color' },
+      ] },
+      { key: 'color', label: 'Color (when solid)', type: 'color', def: '#ffffff' },
+    ],
+    runFile: async (file, p) => {
+      const { removeBackground } = await import('@imgly/background-removal');
+      const cut = await removeBackground(file);
+      const base = file.name.replace(/\.[^.]+$/, '') || 'image';
+      if (p.bg === 'color') {
+        const bitmap = await createImageBitmap(cut);
+        const [c, ctx] = make(bitmap.width, bitmap.height);
+        ctx.fillStyle = String(p.color); ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(bitmap, 0, 0);
+        const out = await new Promise<Blob>((res) => c.toBlob((b) => res(b!), 'image/png'));
+        return { blob: out, filename: `${base}-nobg.png` };
+      }
+      return { blob: cut, filename: `${base}-nobg.png` };
+    },
+  },
+
   // ---- Compression / conversion (output-driven) ----
   compress: {
     controls: [

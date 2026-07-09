@@ -28,7 +28,7 @@ interface Job {
   error?: string;
 }
 
-const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf', 'viewExif', 'changeDpi']);
+const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf', 'viewExif', 'changeDpi', 'removeBackground']);
 const PREVIEW_MAX = 900;
 const ENCODABLE = new Set(['jpeg', 'png', 'webp', 'avif']);
 
@@ -47,6 +47,7 @@ const VERB: Record<string, string> = {
   'canvas-size': 'Apply', text: 'Apply', watermark: 'Apply', passthrough: 'Process', viewExif: 'Read metadata',
   changeDpi: 'Set DPI', base64: 'Generate', datauri: 'Generate', colorPalette: 'Extract', colorCount: 'Count',
   gifToImages: 'Extract', gifResizer: 'Resize', gifOptimizer: 'Optimize', splitImage: 'Split',
+  removeBackground: 'Remove background',
 };
 
 let idSeq = 0;
