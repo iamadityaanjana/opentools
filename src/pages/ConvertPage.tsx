@@ -1,29 +1,21 @@
 import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ImageSquare, ShieldCheck } from '@phosphor-icons/react';
+import { ImageSquare, ShieldCheck } from '@phosphor-icons/react';
 import { DotsThinking } from '../components/Thinking';
+import { TopNav } from '../components/TopNav';
 
 const Converter = lazy(() => import('../components/Converter'));
 
 export default function ConvertPage() {
   return (
-    <div className="page">
-      <header className="topbar">
-        <nav className="crumbs">
-          <Link className="crumbs__home" to="/">
-            toolbox…
-          </Link>
-          <span className="crumbs__sep">/</span>
-          <Link className="crumbs__link" to="/tools">
-            Tools
-          </Link>
-          <span className="crumbs__sep">/</span>
-          <span className="crumbs__current">Image converter</span>
-        </nav>
-        <Link className="btn btn--pill btn--icon" to="/tools">
-          <ArrowLeft size={15} weight="bold" /> All tools
-        </Link>
-      </header>
+    <div className="page page--wide">
+      <TopNav />
+
+      <nav className="crumbs crumbs--sub">
+        <Link className="crumbs__link" to="/image">Image tools</Link>
+        <span className="crumbs__sep">/</span>
+        <span className="crumbs__current">Image converter</span>
+      </nav>
 
       <div className="tool-hero">
         <div className="tool-hero__icon">

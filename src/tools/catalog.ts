@@ -20,12 +20,14 @@ import {
 } from '@phosphor-icons/react';
 
 export type ToolStatus = 'live' | 'soon';
+export type ToolGroup = 'image' | 'pdf';
 
 export interface ToolCategory {
   id: string;
   label: string;
   emoji: string;
   icon: Icon;
+  group: ToolGroup;
 }
 
 export interface Tool {
@@ -35,25 +37,46 @@ export interface Tool {
   status: ToolStatus;
   route?: string;
   blurb?: string;
+  /** Operation id in the ops engine (for generic tool pages). */
+  op?: string;
+  /** Whether the tool combines many inputs into one output. */
+  mode?: 'each' | 'combine';
 }
 
 export const CATEGORIES: ToolCategory[] = [
-  { id: 'convert', label: 'Convert', emoji: '🔄', icon: ArrowsLeftRight },
-  { id: 'resize', label: 'Resize & Crop', emoji: '📏', icon: Crop },
-  { id: 'compress', label: 'Compression', emoji: '🗜️', icon: FileZip },
-  { id: 'edit', label: 'Basic Editing', emoji: '🎨', icon: PaintBrush },
-  { id: 'pdf', label: 'PDF Tools', emoji: '📄', icon: FilePdf },
-  { id: 'organize', label: 'Organization', emoji: '🖼️', icon: SquaresFour },
-  { id: 'web', label: 'Web & Design', emoji: '📐', icon: Browser },
-  { id: 'metadata', label: 'Metadata', emoji: '🔍', icon: Info },
-  { id: 'utilities', label: 'Utilities', emoji: '✂️', icon: Wrench },
-  { id: 'mobile', label: 'Mobile Tasks', emoji: '📱', icon: DeviceMobile },
-  { id: 'gif', label: 'GIF Tools', emoji: '🎞️', icon: Gif },
-  { id: 'color', label: 'Color Tools', emoji: '🎨', icon: Palette },
-  { id: 'misc', label: 'Miscellaneous', emoji: '🔧', icon: DotsThreeCircle },
+  { id: 'convert', label: 'Convert', emoji: '🔄', icon: ArrowsLeftRight, group: 'image' },
+  { id: 'resize', label: 'Resize & Crop', emoji: '📏', icon: Crop, group: 'image' },
+  { id: 'compress', label: 'Compression', emoji: '🗜️', icon: FileZip, group: 'image' },
+  { id: 'edit', label: 'Basic Editing', emoji: '🎨', icon: PaintBrush, group: 'image' },
+  { id: 'pdf', label: 'PDF Tools', emoji: '📄', icon: FilePdf, group: 'pdf' },
+  { id: 'organize', label: 'Organization', emoji: '🖼️', icon: SquaresFour, group: 'image' },
+  { id: 'web', label: 'Web & Design', emoji: '📐', icon: Browser, group: 'image' },
+  { id: 'metadata', label: 'Metadata', emoji: '🔍', icon: Info, group: 'image' },
+  { id: 'utilities', label: 'Utilities', emoji: '✂️', icon: Wrench, group: 'image' },
+  { id: 'mobile', label: 'Mobile Tasks', emoji: '📱', icon: DeviceMobile, group: 'image' },
+  { id: 'gif', label: 'GIF Tools', emoji: '🎞️', icon: Gif, group: 'image' },
+  { id: 'color', label: 'Color Tools', emoji: '🎨', icon: Palette, group: 'image' },
+  { id: 'misc', label: 'Miscellaneous', emoji: '🔧', icon: DotsThreeCircle, group: 'image' },
 ];
 
 export const CATEGORY_BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
+
+// Groups shown as top-level entry points on the hero.
+export const GROUPS: { id: ToolGroup; label: string; route: string }[] = [
+  { id: 'image', label: 'Image tools', route: '/image' },
+  { id: 'pdf', label: 'PDF tools', route: '/pdf' },
+];
+
+// Commonly-used image categories surfaced directly in the nav.
+export const PRIMARY_NAV_CATEGORIES = ['convert', 'resize', 'compress', 'edit'];
+// Everything else in the image group lives under the "Other tools" menu.
+export const OTHER_NAV_CATEGORIES = CATEGORIES.filter(
+  (c) => c.group === 'image' && !PRIMARY_NAV_CATEGORIES.includes(c.id),
+).map((c) => c.id);
+
+export function categoriesForGroup(group: ToolGroup): ToolCategory[] {
+  return CATEGORIES.filter((c) => c.group === group);
+}
 
 function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -163,5 +186,74 @@ export const TOOLS: Tool[] = Object.entries(SEED).flatMap(([categoryId, seeds]) 
   })),
 );
 
+// Feasible tools powered by the generic ops engine. One entry = a live tool.
+const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
+  // Resize & crop
+  'resize-image': { op: 'resize' },
+  'crop-image': { op: 'crop' },
+  'rotate-image': { op: 'rotate' },
+  'flip-image': { op: 'flip' },
+  'change-canvas-size': { op: 'canvas-size' },
+  // Compression
+  'compress-jpg': { op: 'compress' },
+  'compress-png': { op: 'compress' },
+  'compress-webp': { op: 'compress' },
+  'batch-compress-images': { op: 'compress' },
+  // Basic editing
+  'add-text': { op: 'text' },
+  'add-watermark': { op: 'watermark' },
+  'blur-image': { op: 'blur' },
+  'sharpen-image': { op: 'sharpen' },
+  'adjust-brightness': { op: 'brightness' },
+  'adjust-contrast': { op: 'contrast' },
+  'adjust-saturation': { op: 'saturation' },
+  'convert-to-grayscale': { op: 'grayscale' },
+  'invert-colors': { op: 'invert' },
+  // PDF
+  'images-to-pdf': { op: 'imagesToPdf', mode: 'combine' },
+  // Organization
+  'merge-images': { op: 'merge', mode: 'combine' },
+  'create-collage': { op: 'collage', mode: 'combine' },
+  // Web & design
+  'generate-favicon': { op: 'favicon' },
+  'resize-for-social-media': { op: 'social' },
+  'generate-thumbnails': { op: 'thumbnail' },
+  'convert-to-base64': { op: 'base64' },
+  'image-to-data-uri': { op: 'datauri' },
+  // Metadata
+  'remove-exif-metadata': { op: 'passthrough' },
+  'change-resolution': { op: 'resize' },
+  // Utilities (batch = multi-file upload of the same op)
+  'batch-resize': { op: 'resize' },
+  'batch-convert': { op: 'passthrough' },
+  'batch-rotate': { op: 'rotate' },
+  // Mobile
+  'heic-to-jpg': { op: 'convertJpeg' },
+  'screenshot-cropper': { op: 'crop' },
+  'reduce-image-size-for-upload': { op: 'reduce' },
+  // Color
+  'extract-color-palette': { op: 'colorPalette' },
+  'image-color-counter': { op: 'colorCount' },
+  // Miscellaneous
+  'add-border': { op: 'border' },
+  'round-corners': { op: 'round-corners' },
+  'mirror-image': { op: 'flip' },
+  'pixelate-image': { op: 'pixelate' },
+  'mosaic-effect': { op: 'pixelate' },
+  'convert-transparency': { op: 'transparency' },
+  'change-background-color': { op: 'bgcolor' },
+};
+
+for (const t of TOOLS) {
+  const impl = IMPL[t.id];
+  if (impl) {
+    t.status = 'live';
+    t.op = impl.op;
+    t.mode = impl.mode;
+    t.route = `/tools/${t.id}`;
+  }
+}
+
+export const TOOL_BY_ID = new Map(TOOLS.map((t) => [t.id, t]));
 export const LIVE_COUNT = TOOLS.filter((t) => t.status === 'live').length;
 export const TOTAL_COUNT = TOOLS.length;

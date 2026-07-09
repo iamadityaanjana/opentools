@@ -1,34 +1,15 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, ImageSquare, SquaresFour } from '@phosphor-icons/react';
+import { ArrowRight, ImageSquare, FilePdf, DotsThreeCircle } from '@phosphor-icons/react';
 import { PlusGrid } from '../components/PlusGrid';
 import { BlinkingCursor } from '../components/Thinking';
+import { TopNav } from '../components/TopNav';
 import { TOTAL_COUNT } from '../tools/catalog';
-
-// Warm the converter route's chunk on intent, without loading it up front.
-function preloadConverter() {
-  import('../components/Converter');
-}
 
 export default function Landing() {
   return (
     <div className="page page--landing">
-      <header className="topbar">
-        <div className="logo">toolbox…</div>
-        <div className="topbar__actions">
-          <a
-            className="btn btn--ghost"
-            href="http://cal.com/adityaanjana"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Book a call
-          </a>
-          <Link className="btn btn--pill" to="/tools">
-            All tools
-          </Link>
-        </div>
-      </header>
+      <TopNav />
 
       <main className="hero">
         <motion.h1
@@ -55,17 +36,15 @@ export default function Landing() {
         </p>
 
         <div className="hero__cta">
-          <Link className="btn btn--dark btn--icon" to="/tools">
-            <SquaresFour size={16} weight="fill" /> Browse all tools <ArrowRight size={15} weight="bold" />
+          <Link className="btn btn--dark btn--icon" to="/image">
+            <ImageSquare size={16} weight="fill" /> Image tools <ArrowRight size={15} weight="bold" />
           </Link>
-          <Link
-            className="btn btn--icon"
-            to="/convert"
-            onMouseEnter={preloadConverter}
-            onFocus={preloadConverter}
-          >
-            <ImageSquare size={16} weight="fill" /> Image converter
+          <Link className="btn btn--icon" to="/pdf">
+            <FilePdf size={16} weight="fill" /> PDF tools
           </Link>
+          <button className="btn btn--soon btn--icon" disabled>
+            <DotsThreeCircle size={16} /> Other <span className="soon-tag">coming soon</span>
+          </button>
         </div>
       </main>
     </div>
