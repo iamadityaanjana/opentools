@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, ImageSquare, FilePdf, DotsThreeCircle } from '@phosphor-icons/react';
@@ -10,13 +11,14 @@ import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { LIVE_COUNT, GROUP_HOME } from '../tools/catalog';
 
-export default function Landing() {
+export default function Landing({ children }: { children?: ReactNode }) {
   const posthog = usePostHog();
   return (
     <div className="page page--landing">
       <TopNav minimal />
 
-      <main className="hero">
+      <main>
+      <section className="hero">
         <motion.h1
           className="hero__hi"
           initial={{ opacity: 0, y: 12 }}
@@ -51,6 +53,8 @@ export default function Landing() {
             <DotsThreeCircle size={16} /> Other <span className="soon-tag">coming soon</span>
           </button>
         </div>
+      </section>
+      {children}
       </main>
       <SiteFooter />
     </div>

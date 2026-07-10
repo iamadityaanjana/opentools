@@ -543,16 +543,18 @@ export const ARTICLES: readonly Article[] = [
   },
   {
     slug: 'convert-images-to-pdf-privately',
-    title: 'How to Convert Images to PDF Privately',
+    title: 'How to Convert PNG and JPG Images to PDF Privately',
     description:
-      'Build a readable PDF from images while controlling order, quality, metadata, uploads, and sensitive content.',
+      'Convert PNG to PDF or JPG to PDF in your browser while controlling page order, image quality, metadata, and sensitive content.',
     excerpt:
-      'Private image-to-PDF conversion begins with understanding where processing happens and ends with checking the final document.',
+      'A careful PNG-to-PDF or JPG-to-PDF workflow keeps page images on your device, preserves their intended order, and ends with a check of the finished document.',
     publishedAt: '2026-07-10',
     updatedAt: '2026-07-10',
     readingMinutes: 7,
     relatedToolIds: [
       'images-to-pdf',
+      'png-to-pdf',
+      'jpg-to-pdf',
       'resize-image',
       'image-converter',
       'remove-exif-metadata',
@@ -894,6 +896,545 @@ export const ARTICLES: readonly Article[] = [
           'Too many bytes at correct dimensions and format: tune compression or remove unnecessary metadata.',
           'All three constraints: resize first, convert if needed, then tune the final encode.',
           'Always inspect the final file and keep the original until it is accepted.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'compress-pdf-without-uploading',
+    title: 'How to Compress a PDF Without Uploading It',
+    description:
+      'Learn how to reduce PDF file size locally, choose sensible raster settings, and understand what an image-based compression pass removes.',
+    excerpt:
+      'A browser-local PDF size reducer can decrease PDF size without an upload, but this workflow rasterizes pages and may remove selectable text, links, forms, and document structure.',
+    publishedAt: '2026-07-10',
+    updatedAt: '2026-07-10',
+    readingMinutes: 7,
+    relatedToolIds: [
+      'compress-pdf',
+      'reduce-pdf-size',
+      'optimize-pdf-for-web',
+      'pdf-size-checker',
+      'flatten-pdf',
+    ],
+    sources: [
+      {
+        title: 'PDF Association: PDF specification',
+        url: 'https://pdfa.org/resource/pdf-specification-index/',
+      },
+      {
+        title: 'PDF.js project documentation',
+        url: 'https://mozilla.github.io/pdf.js/',
+      },
+      {
+        title: 'MDN Canvas API',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API',
+      },
+      {
+        title: 'MDN File API',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/API/File_API',
+      },
+    ],
+    sections: [
+      {
+        heading: 'Understand what this compressor changes',
+        paragraphs: [
+          'This browser workflow renders each selected PDF page to pixels, encodes that rendered page as JPEG, and builds a new PDF from those images. Lower raster resolution and JPEG quality can reduce bytes substantially when the source contains large scans or inefficient images, but the result is a visual copy rather than a structure-preserving optimization.',
+          'Rasterization may remove selectable text, searchability, hyperlinks, form fields, annotations, bookmarks, tags, layers, signatures, and other interactive or accessibility features. If those features matter, keep the original and use a structure-aware desktop or server workflow that explicitly preserves them.',
+        ],
+        bullets: [
+          'Use this method for visual reading copies, scans, or documents whose page appearance matters more than internal structure.',
+          'Do not use the compressed copy as the only archival, accessible, signed, or legally significant version.',
+          'Test text selection, links, forms, and assistive-technology requirements before distributing the result.',
+        ],
+      },
+      {
+        heading: 'Choose resolution before lowering JPEG quality',
+        paragraphs: [
+          'Raster resolution controls how many pixels represent each page. Reducing it usually has a larger and more predictable effect than repeatedly lowering JPEG quality, but small type, thin rules, diagrams, and signatures can become difficult to read when too few pixels remain.',
+          'JPEG quality controls compression artefacts inside that pixel grid. Start with a representative page at a moderate resolution and quality, inspect it at normal size and at 100%, then adjust one setting at a time so you can identify the cause of blur, ringing, or blockiness.',
+        ],
+        bullets: [
+          'Use a higher DPI for small print, detailed diagrams, or documents intended for printing.',
+          'Use a lower DPI for screen-only copies with large, simple text.',
+          'Inspect coloured text, gradients, stamps, and screenshots because JPEG artefacts are not limited to photographs.',
+          'Compress from the original once rather than recompressing an already rasterized copy.',
+        ],
+      },
+      {
+        heading: 'Measure the result instead of assuming a saving',
+        paragraphs: [
+          'A raster rebuild is not guaranteed to make every PDF smaller. A compact born-digital document containing efficient text and vector graphics can grow when every page becomes a full-page image. Conversely, an oversized scanned PDF may shrink considerably.',
+          'Compare file size and usefulness, not file size alone. Open the output in a second viewer, search for a known phrase, zoom into the hardest page, and print a sample if printing is part of the destination.',
+        ],
+        bullets: [
+          'Record the original byte size and page count before processing.',
+          'Confirm every requested page is present and in the correct orientation.',
+          'Check that the output meets the actual email, portal, or storage limit.',
+          'Reject a smaller result if essential text or marks are no longer legible.',
+        ],
+      },
+      {
+        heading: 'Keep the local workflow private and recoverable',
+        paragraphs: [
+          'Local browser processing avoids sending the PDF file to the application server, but it does not make the device, browser extensions, downloads folder, backups, or later sharing channel private. Use a trusted device and treat the downloaded result according to the document’s sensitivity.',
+          'Large PDFs can consume much more memory while pages are rendered than their compressed file size suggests. Process a limited page range or a smaller document first on memory-constrained phones, and keep the source until the new file has passed review.',
+        ],
+        bullets: [
+          'Test unfamiliar settings with a non-sensitive copy.',
+          'Close unnecessary tabs before processing a long or image-heavy document.',
+          'Use an approved transfer channel after local compression.',
+          'Retain the original wherever searchability, accessibility, evidence, or future editing may matter.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'pdf-to-jpg-save-pages-as-images',
+    title: 'PDF to JPG: How to Save PDF Pages as Images',
+    description:
+      'Convert PDF pages to JPG locally with a deliberate page range, resolution, JPEG quality, and verification workflow.',
+    excerpt:
+      'PDF-to-JPG conversion renders each selected page as a flat image, which is useful for previews and sharing but does not preserve selectable text or PDF interactivity.',
+    publishedAt: '2026-07-10',
+    updatedAt: '2026-07-10',
+    readingMinutes: 6,
+    relatedToolIds: [
+      'pdf-to-jpg',
+      'pdf-to-images',
+      'compress-jpg',
+      'resize-image',
+      'crop-image',
+    ],
+    sources: [
+      {
+        title: 'PDF.js project documentation',
+        url: 'https://mozilla.github.io/pdf.js/',
+      },
+      {
+        title: 'PDF.js examples',
+        url: 'https://mozilla.github.io/pdf.js/examples/',
+      },
+      {
+        title: 'MDN HTMLCanvasElement.toBlob()',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob',
+      },
+      {
+        title: 'PDF Association: PDF specification',
+        url: 'https://pdfa.org/resource/pdf-specification-index/',
+      },
+    ],
+    sections: [
+      {
+        heading: 'Know what PDF to JPG conversion produces',
+        paragraphs: [
+          'A PDF page can contain text, vector paths, images, transparency, annotations, and other objects. Converting PDF to JPG renders their visible appearance into one rectangular pixel image per page. The JPG no longer contains the page’s selectable text, links, fields, vectors, or document navigation.',
+          'That flattening is useful for thumbnails, slide previews, social posts, and systems that accept images but not PDFs. It is a poor substitute for the original when recipients need search, copy and paste, accessibility structure, zoom-independent line art, or forms.',
+        ],
+        bullets: [
+          'Keep the PDF as the source of record.',
+          'Use JPG for a compact visual page copy with broad compatibility.',
+          'Choose PNG instead when sharp line art, screenshots, or lossless output matters more than file size.',
+        ],
+      },
+      {
+        heading: 'Select pages and resolution deliberately',
+        paragraphs: [
+          'Choose only the pages you need before rendering. A page-range export reduces processing time, download clutter, and the chance that confidential pages are included accidentally. Review page numbering carefully because printed labels and PDF page indices can differ.',
+          'DPI determines the raster dimensions calculated from the PDF page size. More DPI improves fine detail up to the limits of the source, but increases memory, encoding time, and file size. It cannot recover detail that was absent from a low-resolution scan.',
+        ],
+        bullets: [
+          'Use a moderate DPI for messaging, previews, or on-screen reference.',
+          'Raise DPI for small type or print use, then inspect the actual output.',
+          'Export a difficult page first before processing the whole document.',
+          'Check portrait and landscape pages because their pixel dimensions will differ.',
+        ],
+      },
+      {
+        heading: 'Set JPEG quality around the page content',
+        paragraphs: [
+          'JPEG is lossy. Photographs often tolerate a moderate quality setting, while fine text, signatures, barcodes, and thin coloured lines can develop halos or blur. A single setting may not suit a document that mixes photo-heavy and text-heavy pages.',
+          'Open representative files at normal viewing size and 100% zoom. If text edges are damaged, increase quality or resolution, or use PDF-to-images with PNG for the affected pages. Repeatedly saving the JPG will add another lossy generation.',
+        ],
+        bullets: [
+          'Inspect the smallest text and highest-contrast edges.',
+          'Check gradients and pale backgrounds for banding.',
+          'Avoid converting the JPG back to PDF and expecting the original structure to return.',
+          'Resize only after deciding the final use and keep the first export as the working master.',
+        ],
+      },
+      {
+        heading: 'Convert on desktop or iPhone without an upload',
+        paragraphs: [
+          'A browser-local tool can perform PDF to JPG on an iPhone as well as a desktop when the browser has enough memory. Select the PDF from Files, process a short range first, and save or share the downloaded images through the intended app. Mobile download handling varies, so verify where the files were stored.',
+          'Local conversion keeps page content out of the application’s upload path, but the files may still enter device backups or a cloud-synced Files location. Review the final image sequence before sending it and remove working copies according to your retention needs.',
+        ],
+        bullets: [
+          'On a phone, process fewer high-DPI pages at once to reduce tab reloads.',
+          'Confirm filenames preserve page order before attaching multiple images.',
+          'Check that no hidden or unintended page was exported.',
+          'Use the original PDF when the recipient can accept it and needs document features.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'pdf-to-text-without-ocr',
+    title: 'PDF to Text: Extract Selectable Text Without OCR',
+    description:
+      'Extract an existing PDF text layer into a plain-text file locally, and recognize when a scanned document actually needs OCR.',
+    excerpt:
+      'PDF-to-text extraction reads characters already encoded in the document; it does not inspect page images or perform optical character recognition.',
+    publishedAt: '2026-07-10',
+    updatedAt: '2026-07-10',
+    readingMinutes: 6,
+    relatedToolIds: [
+      'pdf-to-text',
+      'extract-text-from-pdf',
+      'view-pdf-metadata',
+      'pdf-info',
+      'extract-pages',
+    ],
+    sources: [
+      {
+        title: 'PDF.js PDFPageProxy API',
+        url: 'https://mozilla.github.io/pdf.js/api/draft/module-pdfjsLib-PDFPageProxy.html',
+      },
+      {
+        title: 'PDF.js API documentation',
+        url: 'https://mozilla.github.io/pdf.js/api/',
+      },
+      {
+        title: 'PDF Association: Why copied PDF text can be incorrect',
+        url: 'https://pdfa.org/error-the-text-copied-from-the-pdf-could-not-be-pasted-correctly/',
+      },
+      {
+        title: 'PDF Association FAQ: AI and PDF',
+        url: 'https://pdfa.org/faq-ai-and-pdf/',
+      },
+    ],
+    sections: [
+      {
+        heading: 'Check whether the PDF already contains text',
+        paragraphs: [
+          'Try selecting a sentence in a PDF viewer and searching for a visible word. If both work, the document probably contains text objects that a PDF-to-text tool can read. Born-digital reports, invoices, and exported documents commonly do, even when their visual layout is elaborate.',
+          'A scanned PDF may contain only page images. In that case there are no encoded characters to extract, so this tool can return little or nothing. It does not perform OCR, infer words from pixels, or add a searchable layer.',
+        ],
+        bullets: [
+          'Successful text selection is a useful first check, not a guarantee of clean extraction.',
+          'An invisible OCR layer may exist behind a scan and can contain recognition errors.',
+          'Use a dedicated OCR workflow only when image-based pages need recognition.',
+        ],
+      },
+      {
+        heading: 'Expect reading order and character mapping limits',
+        paragraphs: [
+          'PDF stores instructions for placing content on pages, not necessarily a simple paragraph stream. Columns, tables, sidebars, headers, footers, and individually positioned glyphs may be returned in an order that differs from how a person reads the page.',
+          'Visible glyphs also need a usable mapping to Unicode for reliable copy and extraction. Missing or incorrect font mappings can produce replacement characters, scrambled text, or output that looks plausible but is wrong. Plain-text export cannot preserve the original typography or geometry.',
+        ],
+        bullets: [
+          'Compare names, dates, numbers, and non-Latin text against the page.',
+          'Expect table cells and multi-column layouts to require cleanup.',
+          'Treat extracted text as data to verify, not a certified transcription.',
+          'Keep the source PDF for visual and evidentiary context.',
+        ],
+      },
+      {
+        heading: 'Use page ranges to keep output focused',
+        paragraphs: [
+          'Extract only the relevant pages when the document is long or contains information that should not be copied into a new file. A focused range makes review easier and avoids carrying unrelated headers, appendices, or confidential sections into downstream notes.',
+          'The output is a UTF-8 plain-text file. It is suitable for searching, quoting after verification, or importing into another text workflow, but it will not retain images, links, comments, forms, page design, or semantic tags.',
+        ],
+        bullets: [
+          'Confirm whether the range uses physical PDF page order rather than printed page labels.',
+          'Review page boundaries and repeated headers in the text file.',
+          'Normalize whitespace only after checking that meaningful separation is not lost.',
+          'Quote from the original page when exact formatting or context matters.',
+        ],
+      },
+      {
+        heading: 'Protect sensitive text after extraction',
+        paragraphs: [
+          'Browser-local extraction avoids uploading the PDF through the tool, but the downloaded text can be easier to search, index, copy, and accidentally disclose than the source document. It may also be saved in a synchronized downloads folder or captured by backups.',
+          'Review the generated file before sharing, especially when the source contains hidden text, repeated headers, or content outside the visible crop. Delete temporary copies when appropriate and use an approved storage and transfer channel.',
+        ],
+        bullets: [
+          'Use a trusted device for confidential documents.',
+          'Open the text file and search for sensitive terms before distribution.',
+          'Do not assume visual redaction removed an underlying text object.',
+          'Retain only the minimum page range and text needed for the task.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'avif-to-jpg-or-png',
+    title: 'AVIF to JPG or PNG: Which Output Should You Choose?',
+    description:
+      'Convert AVIF to JPG or PNG locally while choosing between smaller photographic files, transparency, lossless output, and broad compatibility.',
+    excerpt:
+      'AVIF conversion decodes the image to pixels and rasterizes those pixels into a new JPG or PNG; the right output depends on content and destination.',
+    publishedAt: '2026-07-10',
+    updatedAt: '2026-07-10',
+    readingMinutes: 6,
+    relatedToolIds: [
+      'image-converter',
+      'compress-jpg',
+      'compress-png',
+      'resize-image',
+      'view-exif-data',
+    ],
+    sources: [
+      {
+        title: 'Alliance for Open Media AV1 Image File Format',
+        url: 'https://aomediacodec.github.io/av1-avif/',
+      },
+      {
+        title: 'MDN image file type and format guide',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Image_types',
+      },
+      {
+        title: 'web.dev: choose the right image format',
+        url: 'https://web.dev/articles/choose-the-right-image-format',
+      },
+      {
+        title: 'MDN Canvas API',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API',
+      },
+    ],
+    sections: [
+      {
+        heading: 'Choose JPG for photographs and compatibility',
+        paragraphs: [
+          'JPG is usually the practical output for an opaque photograph that must open in older editors, upload forms, office software, or messaging systems. Its lossy compression can produce a much smaller file than PNG for continuous-tone imagery, especially when you also resize oversized dimensions.',
+          'An AVIF-to-JPG conversion decodes the AVIF and encodes a new raster image. It cannot preserve alpha transparency, animation, layered auxiliary images, or every high-bit-depth and HDR characteristic of the source. Transparent areas need to be composited against a chosen background.',
+        ],
+        bullets: [
+          'Use JPG for opaque photos and broad interchange.',
+          'Start at high quality and lower it only after visual comparison.',
+          'Check highlights, gradients, skin, foliage, and text for new artefacts.',
+          'Keep the AVIF original as the higher-feature source.',
+        ],
+      },
+      {
+        heading: 'Choose PNG for transparency and crisp graphics',
+        paragraphs: [
+          'PNG is a stronger choice when the decoded AVIF uses transparency or contains interface graphics, logos, diagrams, or sharp text that should not receive JPEG artefacts. PNG writes the output pixels losslessly, but it can be much larger than AVIF or JPG, particularly for photographs.',
+          'Lossless PNG output does not make the conversion itself reversible. Features not represented in the decoded pixel surface, and precision beyond the browser pipeline, are not restored by selecting a lossless destination.',
+        ],
+        bullets: [
+          'Use PNG when alpha transparency must survive.',
+          'Prefer PNG for flat colours and sharp synthetic edges.',
+          'Do not convert a photo to PNG merely because “lossless” sounds better; compare the byte cost.',
+          'Preview transparency over both light and dark backgrounds.',
+        ],
+      },
+      {
+        heading: 'Treat colour, metadata, and dimensions as checks',
+        paragraphs: [
+          'AVIF can carry colour information and image features that a simple browser raster export may flatten or transform. Compare the result with the source in a colour-aware viewer, especially for wide-gamut, HDR, professional, or brand-critical material.',
+          'Metadata handling differs from pixel rendering. A visually correct JPG or PNG may omit Exif, XMP, rights, orientation, or other source fields. Conversely, never assume conversion alone has met a privacy policy without inspecting the output.',
+        ],
+        bullets: [
+          'Verify pixel width and height after conversion.',
+          'Check orientation, colour, and transparent edges.',
+          'Inspect metadata separately when location, rights, or attribution matter.',
+          'Use a specialist colour-managed workflow when an exact production transform is required.',
+        ],
+      },
+      {
+        heading: 'Test the destination before converting a batch',
+        paragraphs: [
+          'The best format is the one the destination accepts at an acceptable quality and size. Convert one difficult AVIF, upload or open it in the target system, and then reuse the tested choice for similar files. Avoid creating both formats when one clearly satisfies the requirement.',
+          'Browser-local decoding avoids an image upload to the conversion service, but large AVIF files can require substantial memory once decoded. Smaller batches are safer on mobile devices, and unsupported or unusual AVIF features may require a dedicated image application.',
+        ],
+        bullets: [
+          'Confirm accepted extensions, MIME types, dimensions, and byte limits.',
+          'Use the source AVIF for future conversions rather than a JPG derivative.',
+          'Check a representative batch sample after conversion.',
+          'Keep failed or ambiguous files out of the completed download set.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'png-to-ico-favicon-without-blur',
+    title: 'PNG to ICO: How to Create a Favicon Without Blurry Results',
+    description:
+      'Turn a PNG into a crisp ICO favicon by preparing a square source, simplifying fine detail, and checking the actual small output size.',
+    excerpt:
+      'A good PNG-to-ICO conversion starts with icon-scale artwork; shrinking a detailed logo to 16 or 32 pixels cannot preserve detail that no longer fits.',
+    publishedAt: '2026-07-10',
+    updatedAt: '2026-07-10',
+    readingMinutes: 6,
+    relatedToolIds: [
+      'generate-favicon',
+      'image-converter',
+      'resize-image',
+      'crop-image',
+      'change-canvas-size',
+    ],
+    sources: [
+      {
+        title: 'Microsoft Learn: Icons',
+        url: 'https://learn.microsoft.com/en-us/windows/win32/menurc/icons',
+      },
+      {
+        title: 'Microsoft Learn: Icon design basics',
+        url: 'https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-icons',
+      },
+      {
+        title: 'WHATWG HTML: Link type icon',
+        url: 'https://html.spec.whatwg.org/multipage/links.html#rel-icon',
+      },
+      {
+        title: 'W3C: How to add a favicon to your site',
+        url: 'https://www.w3.org/2005/10/howto-favicon',
+      },
+    ],
+    sections: [
+      {
+        heading: 'Start with icon artwork, not a full-size logo',
+        paragraphs: [
+          'A browser tab may display a favicon at roughly 16 or 32 CSS pixels. Fine lettering, thin strokes, shadows, and small gaps disappear or blend when a large PNG is reduced to that grid. No ICO converter can retain detail for which there are not enough output pixels.',
+          'Create a simplified square mark with a clear silhouette and generous spacing. If the brand logo is wide or text-heavy, use a recognisable symbol or initial specifically drawn for small sizes rather than squeezing the entire lockup into a square.',
+        ],
+        bullets: [
+          'Use a square canvas and centre the visual weight, not merely the bounding box.',
+          'Thicken fragile strokes and enlarge important gaps.',
+          'Remove tiny text, subtle textures, and photographic detail.',
+          'Preview against light and dark browser chrome.',
+        ],
+      },
+      {
+        heading: 'Prepare transparency and edges before export',
+        paragraphs: [
+          'PNG is a useful source because it can preserve an alpha channel and crisp edges. Remove accidental semi-transparent fringes from a previous background, and leave enough transparent padding that the mark does not touch the icon boundary.',
+          'Downsampling blends neighbouring pixels, so a sharp source can still look soft when scaled automatically. Compare a high-quality reduction with a hand-adjusted small-size version; at 16 pixels, moving or strengthening a feature by one pixel can materially improve clarity.',
+        ],
+        bullets: [
+          'Avoid an opaque white square unless it is part of the design.',
+          'Check for coloured halos around transparent edges.',
+          'Use strong contrast rather than relying on subtle colour differences.',
+          'Judge the icon at actual size, not only while zoomed in.',
+        ],
+      },
+      {
+        heading: 'Understand what the local ICO output contains',
+        paragraphs: [
+          'ICO is a container that can hold multiple images at different sizes and colour depths. The local favicon tool creates one PNG-backed image at the selected size—16, 32, 48, or 64 pixels—inside the ICO. That is suitable for a focused favicon test, but it is not a complete multi-resolution Windows application icon set.',
+          'For a website, 32 pixels is a practical starting point, followed by testing at the browser’s actual display size. For a Windows application or other environment that expects several resources, use a dedicated icon-authoring workflow to package all required sizes, potentially including a 256-pixel image.',
+        ],
+        bullets: [
+          'Choose 16 pixels only when you have verified the artwork remains clear at that exact grid.',
+          'Use 32 or 48 pixels when the consuming browser or shortcut can downscale cleanly.',
+          'Do not claim a single-image ICO covers every Windows shell or high-DPI requirement.',
+          'Keep the master PNG so you can author additional sizes independently.',
+        ],
+      },
+      {
+        heading: 'Publish and verify the favicon',
+        paragraphs: [
+          'Reference the icon from the document head with an appropriate link element and a stable URL. Browsers cache site icons aggressively, so a changed filename or versioned URL can make testing more reliable than repeatedly replacing the same file.',
+          'Check the deployed site in more than one browser, a pinned or saved shortcut if relevant, and both light and dark system themes. The favicon should remain distinguishable beside neighbouring tabs without appearing heavier or blurrier than its peers.',
+        ],
+        bullets: [
+          'Test the deployed URL directly and confirm the server returns the correct file.',
+          'Use a simple PNG favicon as an additional web option when your browser support policy allows it.',
+          'Clear favicon caches or version the URL during iteration.',
+          'Retain alternative small-size artwork when one automatic reduction cannot serve every context.',
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'edit-pdf-without-installing-software',
+    title: 'How to Edit PDF Files Without Installing Software',
+    description:
+      'Edit PDF files in a browser with local page operations, text stamps, metadata changes, and basic form filling while respecting structural limits.',
+    excerpt:
+      'Browser tools can reorganize pages and add simple content without an install, but they are not full object-level PDF editors and cannot safely rewrite every paragraph, image, signature, or annotation.',
+    publishedAt: '2026-07-10',
+    updatedAt: '2026-07-10',
+    readingMinutes: 8,
+    relatedToolIds: [
+      'merge-pdfs',
+      'split-pdf',
+      'delete-pages',
+      'rearrange-pages',
+      'rotate-pages',
+      'add-text-to-pdf',
+      'fill-pdf-forms',
+    ],
+    sources: [
+      {
+        title: 'PDF Association: PDF specification',
+        url: 'https://pdfa.org/resource/pdf-specification-index/',
+      },
+      {
+        title: 'PDF.js project documentation',
+        url: 'https://mozilla.github.io/pdf.js/',
+      },
+      {
+        title: 'pdf-lib documentation',
+        url: 'https://pdf-lib.js.org/',
+      },
+      {
+        title: 'MDN File API',
+        url: 'https://developer.mozilla.org/en-US/docs/Web/API/File_API',
+      },
+    ],
+    sections: [
+      {
+        heading: 'Match the edit to a live browser operation',
+        paragraphs: [
+          'The browser tools can perform structural page operations such as merging, splitting, extracting, deleting, rearranging, rotating, cropping, and adding blank pages. They can also add simple page numbers, fixed-position text, or watermarks, update basic metadata, and fill supported AcroForm fields.',
+          'These are targeted transformations, not a general visual editor. Choose the smallest operation that solves the problem and download a new copy. Keeping each step explicit makes it easier to verify page order, content, and any features that may have changed.',
+        ],
+        bullets: [
+          'Rearrange or delete pages when the document structure is wrong.',
+          'Add a text stamp or page number when new fixed-position text is sufficient.',
+          'Fill an existing supported form rather than trying to recreate its layout.',
+          'Keep the untouched source before combining several operations.',
+        ],
+      },
+      {
+        heading: 'Recognize advanced edits that are not supported',
+        paragraphs: [
+          'The current local tools do not provide object-level paragraph reflow, arbitrary existing-text replacement, font matching, freeform image replacement, tracked annotation editing, OCR correction, certificate signing, robust redaction, or a full visual form designer. A simple text stamp adds content; it does not edit the original sentence beneath it.',
+          'Security-sensitive features deserve special caution. Drawing a box over text is not reliable redaction because underlying text or objects may remain recoverable. Editing a signed PDF can invalidate signatures, and password encryption or certificate workflows need audited tooling beyond these structural operations.',
+        ],
+        bullets: [
+          'Return to the source document when substantial wording or layout must change.',
+          'Use specialist software for true redaction, digital signatures, OCR, and complex annotations.',
+          'Do not describe cropping as content deletion; it changes the visible page boundary.',
+          'Verify whether forms, links, tags, attachments, or signatures survive any external workflow you choose.',
+        ],
+      },
+      {
+        heading: 'Work locally, one verified copy at a time',
+        paragraphs: [
+          'A browser-based editor can use local file APIs and PDF libraries so the document bytes are processed on the device rather than uploaded through the tool. That removes one transfer, but privacy still depends on the device, browser extensions, downloaded files, synchronized folders, and the channel used afterward.',
+          'Use a descriptive output filename and inspect the result after each meaningful operation. For a long workflow, starting again from the original can be safer than repeatedly transforming a transformed copy, especially when a mistake in page selection is discovered late.',
+        ],
+        bullets: [
+          'Use a trusted device and a non-sensitive sample when learning an operation.',
+          'Close unrelated documents to reduce accidental selection or sharing.',
+          'Preserve versioned outputs until the final PDF is approved.',
+          'Delete temporary files according to the document’s retention policy.',
+        ],
+      },
+      {
+        heading: 'Run a document-level quality check',
+        paragraphs: [
+          'Open the edited PDF in a second viewer and compare it with the source. Check page count, order, orientation, crop boundaries, added content, form values, metadata, and file size. Search for known text and test links or form controls when they are expected to remain live.',
+          'The review standard should match the document’s purpose. A reordered handout needs a visual page check; an accessible form also needs keyboard and assistive-technology testing; a legal, archival, or signed record may require a controlled specialist workflow rather than casual editing.',
+        ],
+        bullets: [
+          'Check the first, last, and every changed page at minimum.',
+          'Confirm no page is missing, duplicated, blank, or unexpectedly clipped.',
+          'Print a representative page when physical output matters.',
+          'Share only the approved copy and retain the source when policy requires it.',
         ],
       },
     ],

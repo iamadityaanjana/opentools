@@ -8,7 +8,7 @@
 
 - Clusters group phrases with the same underlying job and expected result, not every wording variation.
 - “Current SERP competitors” is a directional sample from English web searches on 2026-07-10 plus competitors with established matching landing pages. It is not a fixed rank order.
-- **Semrush/Ahrefs search volume, keyword difficulty (KD), CPC, and traffic estimates were unavailable.** They are intentionally marked **Unavailable**, not guessed.
+- The initial competitor map did not include measured volume or difficulty. The supplied `gap.keywords_2026-07-10T10_07_12.436Z.xlsx` export now provides directional Global English volume and keyword-difficulty data for selected relevant clusters. Rows that were not matched back to that export remain marked **Unavailable**.
 - Priority is qualitative:
   - **P0:** core product-market fit, live capability, and direct path to activation.
   - **P1:** valuable expansion that needs stronger content, UX, or a dedicated route.
@@ -18,6 +18,27 @@
   - **Medium:** intent is clear but the route, output behaviour, or differentiation needs validation.
   - **Low:** ambiguous intent, uncertain capability, or likely mismatch with local-browser constraints.
 - Proposed paths use the current `/tools/{slug}` convention. A proposed URL is not an instruction to publish a thin page; it should launch only when the tool and unique supporting content are ready.
+
+## Validated opportunities from the supplied workbook
+
+The workbook contains 30,000 rows. These are the strongest relevant terms that map to a reliable live capability; volume and difficulty are directional inputs, not traffic forecasts.
+
+| Search intent | Volume | Difficulty | Primary page | Supporting guide |
+| --- | ---: | ---: | --- | --- |
+| how to convert HEIC to JPG | 110,000 | 39 | `/tools/heic-to-jpg` | `/guides/heic-to-jpg-quality-metadata-privacy` |
+| PNG to PDF | 110,000 | 46 | `/tools/png-to-pdf` | `/guides/convert-images-to-pdf-privately` |
+| AVIF to JPG | 33,100 | 44 | `/convert` | `/guides/avif-to-jpg-or-png` |
+| AVIF to PNG | 27,100 | 38 | `/convert` | `/guides/avif-to-jpg-or-png` |
+| reduce PDF file size | 18,100 | 61 | `/tools/compress-pdf` | `/guides/compress-pdf-without-uploading` |
+| PDF size reducer | 12,100 | 54 | `/tools/reduce-pdf-size` | `/guides/compress-pdf-without-uploading` |
+| PDF to JPG | 12,100 | 62 | `/tools/pdf-to-jpg` | `/guides/pdf-to-jpg-save-pages-as-images` |
+| PDF to text | 9,900 | 43 | `/tools/pdf-to-text` | `/guides/pdf-to-text-without-ocr` |
+| PNG to ICO | 18,100 | 49 | `/convert` | `/guides/png-to-ico-favicon-without-blur` |
+| ICO converter | 5,400 | 28 | `/convert` | `/guides/png-to-ico-favicon-without-blur` |
+| HEIF to JPG | 5,400 | 21 | `/tools/heic-to-jpg` | `/guides/heic-to-jpg-quality-metadata-privacy` |
+| JPEG to PNG | 9,900 | 32 | `/convert` | `/guides/png-vs-jpg-vs-webp-vs-avif` |
+
+Deliberately excluded: Office, audio, video, archive, CAD, and OCR terms without a reliable live tool; non-English variants outside the current Global English strategy; and broad high-difficulty terms that would require thin doorway pages.
 
 ## Core keyword map
 
@@ -94,7 +115,7 @@ Guides should resolve a decision or risk that the working tool alone cannot. The
 | GIF vs animated WebP vs APNG | `/guides/gif-vs-animated-webp-vs-apng` | Discovery/evaluation | P1 | GIF tools | MDN, Cloudinary, Ezgif-adjacent guides | Medium |
 | Browser processing limits | `/guides/local-image-processing-limits` | Evaluation/trust | P0 | All batch tools | Few direct competitors disclose this well | High |
 
-**Metric note for all guide clusters:** Semrush volume/KD unavailable; no numerical estimates supplied.
+**Metric note for guide clusters:** use the validated workbook values above where a direct intent match exists. All other guide ideas remain qualitative until measured data is supplied.
 
 ## URL ownership and cannibalisation rules
 

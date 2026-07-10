@@ -52,6 +52,19 @@ export default function GuidesPage() {
           <h1 className="tools-title">Guides</h1>
           <p className="tools-sub">Make better decisions about image formats, privacy, dimensions, and delivery before processing a file.</p>
         </section>
+        <section className="article-prose guides-focus" aria-labelledby="guides-focus-title">
+          <h2 id="guides-focus-title">Browser-based image and PDF guidance</h2>
+          <p>
+            These guides cover image conversion, image compression, resizing, EXIF and metadata
+            privacy, PDF conversion, PDF editing, PDF optimization, batch file processing, and the
+            trade-offs between local browser tools and cloud services.
+          </p>
+          <p>
+            Recommendations are matched to tools that are actually available, with limitations
+            stated explicitly. Sources favour format specifications, browser documentation, and
+            platform guidance rather than unsupported search claims.
+          </p>
+        </section>
         <div className="guide-grid">
           {ARTICLES.map((article) => (
             <article className="guide-card" key={article.slug}>

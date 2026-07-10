@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Landing from '../screens/Landing';
+import { HomeSeoContent } from '../components/HomeSeoContent';
+import { HOME_FAQS } from '../content/home';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../lib/seo';
 
 export const metadata: Metadata = {
@@ -19,5 +21,22 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  return <Landing />;
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: HOME_FAQS.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+    })),
+  };
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
+      />
+      <Landing><HomeSeoContent /></Landing>
+    </>
+  );
 }
