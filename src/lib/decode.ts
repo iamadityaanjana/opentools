@@ -92,6 +92,21 @@ async function decodeAvif(file: File): Promise<DecodedImage> {
   }
 }
 
+/**
+ * WASM fallback for standard formats the browser's native decoder sometimes
+ * rejects (e.g. CMYK or exotic-progressive JPEGs, WebP on older browsers).
+ * Uses the jSquash codecs already bundled for encoding.
+ */
+async function decodeViaSquash(file: File, formatId: string): Promise<DecodedImage> {
+  const buf = await file.arrayBuffer();
+  let imageData: ImageData | null = null;
+  if (formatId === 'jpeg') imageData = await (await import('@jsquash/jpeg')).decode(buf);
+  else if (formatId === 'png') imageData = await (await import('@jsquash/png')).decode(buf);
+  else if (formatId === 'webp') imageData = await (await import('@jsquash/webp')).decode(buf);
+  if (!imageData) throw new Error('No WASM decoder available for this format.');
+  return { imageData, width: imageData.width, height: imageData.height };
+}
+
 export async function decodeToImageData(file: File): Promise<DecodedImage> {
   const fmt = detectFormat(file);
 
@@ -101,16 +116,33 @@ export async function decodeToImageData(file: File): Promise<DecodedImage> {
     );
   }
 
-  switch (fmt?.id) {
-    case 'tiff':
-      return decodeTiff(file);
-    case 'heic':
-      return decodeHeic(file);
-    case 'avif':
-      return decodeAvif(file);
-    case 'svg':
-      return decodeViaImgElement(file);
-    default:
-      return decodeViaBrowser(file);
+  try {
+    switch (fmt?.id) {
+      case 'tiff':
+        return await decodeTiff(file);
+      case 'heic':
+        return await decodeHeic(file);
+      case 'avif':
+        return await decodeAvif(file);
+      case 'svg':
+        return await decodeViaImgElement(file);
+      case 'jpeg':
+      case 'png':
+      case 'webp':
+        // Native decode is fastest; the WASM codec rescues files it rejects.
+        try {
+          return await decodeViaBrowser(file);
+        } catch {
+          return await decodeViaSquash(file, fmt.id);
+        }
+      default:
+        return await decodeViaBrowser(file);
+    }
+  } catch (err) {
+    const label = fmt?.label ?? file.name.split('.').pop()?.toUpperCase() ?? 'This file';
+    throw new Error(
+      `Couldn't decode "${file.name}" (${label}). The file may be corrupt or use an unsupported variant.`,
+      { cause: err },
+    );
   }
 }
