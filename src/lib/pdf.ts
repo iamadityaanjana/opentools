@@ -1,14 +1,10 @@
 // Client-side PDF helpers built on pdf.js. This module is only ever pulled in
 // via a dynamic import() from the PDF ops, so pdfjs-dist (and its worker) stay
-// out of the main bundle. The worker is bundled by Vite through the `?url`
-// import below — no CDN, fully offline.
+// out of the main bundle. Next bundles the worker URL below — no CDN.
 
 import * as pdfjs from 'pdfjs-dist';
-// Vite emits this as a hashed asset URL and only fetches it when this module
-// loads. Keeps the ~1MB worker off the landing page.
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 export interface RenderedPage {
   index: number; // 0-based page index

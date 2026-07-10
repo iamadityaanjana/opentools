@@ -1,5 +1,8 @@
+'use client';
+
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { CaretDown, List, X } from '@phosphor-icons/react';
 import {
   CATEGORY_BY_ID, TOOLS, PRIMARY_NAV_CATEGORIES, OTHER_NAV_CATEGORIES, type Tool,
@@ -13,7 +16,7 @@ function ToolLink({ t, onNavigate }: { t: Tool; onNavigate?: () => void }) {
   if (t.status === 'live' && t.route) {
     return (
       <li>
-        <Link className="megalink" to={t.route} onMouseEnter={() => preload(t.route)} onClick={onNavigate}>
+        <Link className="megalink" href={t.route} onMouseEnter={() => preload(t.route)} onClick={onNavigate}>
           {t.name}
         </Link>
       </li>
@@ -82,7 +85,7 @@ function OtherMenu({ label, catIds }: { label: string; catIds: string[] }) {
 
 function BookCall() {
   return (
-    <a className="btn btn--pill" href="http://cal.com/adityaanjana" target="_blank" rel="noopener noreferrer">
+    <a className="btn btn--pill" href="https://cal.com/adityaanjana" target="_blank" rel="noopener noreferrer">
       Book a call
     </a>
   );
@@ -117,7 +120,7 @@ function MobileCategory({ catId, onNavigate }: { catId: string; onNavigate: () =
  */
 export function TopNav({ minimal = false }: { minimal?: boolean }) {
   const [open, setOpen] = useState(false);
-  const { pathname } = useLocation();
+  const pathname = usePathname();
 
   // Close the drawer whenever the route changes.
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -135,7 +138,7 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
 
   return (
     <header className="topbar topbar--nav">
-      <Link className="logo logo--link" to="/" onClick={close}>
+      <Link className="logo logo--link" href="/" onClick={close}>
         opentools…
       </Link>
 
@@ -149,6 +152,7 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
             {PRIMARY_NAV_CATEGORIES.map((id) => <CategoryMenu key={id} catId={id} />)}
             <CategoryMenu catId="pdf" />
             <OtherMenu label="Other tools" catIds={OTHER_NAV_CATEGORIES} />
+            <Link className="nav__link" href="/guides">Guides</Link>
             <BookCall />
           </div>
 
@@ -168,9 +172,10 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
           <div className="mnav__scrim" onClick={close} />
           <div className="mnav" role="dialog" aria-label="Tools menu">
             <div className="mnav__quick">
-              <Link className="btn btn--dark btn--sm" to="/image" onClick={close}>All image tools</Link>
-              <Link className="btn btn--sm" to="/pdf" onClick={close}>PDF tools</Link>
+              <Link className="btn btn--dark btn--sm" href="/image" onClick={close}>All image tools</Link>
+              <Link className="btn btn--sm" href="/pdf" onClick={close}>PDF tools</Link>
             </div>
+            <Link className="mnav__guide" href="/guides" onClick={close}>Guides</Link>
             <div className="mnav__cats">
               {allCats.map((id) => <MobileCategory key={id} catId={id} onNavigate={close} />)}
             </div>

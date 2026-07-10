@@ -16,8 +16,8 @@ import {
   Gif,
   Palette,
   DotsThreeCircle,
-  type Icon,
-} from '@phosphor-icons/react';
+} from '@phosphor-icons/react/dist/ssr';
+import type { Icon } from '@phosphor-icons/react';
 
 export type ToolStatus = 'live' | 'soon';
 export type ToolGroup = 'image' | 'pdf';
