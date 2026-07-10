@@ -175,7 +175,7 @@ export default function Converter() {
   }, []);
 
   return (
-    <section className="converter" id="converter">
+    <section className={`converter ${jobs.length ? 'converter--active' : ''}`} id="converter">
       <div className="panel">
         <div className="converter__controls">
           <label className="field">
@@ -229,7 +229,7 @@ export default function Converter() {
         </div>
 
         <div
-          className={`dropzone ${dragging ? 'dropzone--active' : ''}`}
+          className={`dropzone ${dragging ? 'dropzone--active' : ''} ${jobs.length ? 'dropzone--compact' : ''}`}
           onDragOver={(e) => {
             e.preventDefault();
             setDragging(true);
@@ -264,7 +264,7 @@ export default function Converter() {
         </div>
       </div>
 
-      <ul className="joblist">
+      {jobs.length > 0 && <ul className="joblist">
         <AnimatePresence initial={false}>
           {jobs.map((job) => {
             const delta =
@@ -342,7 +342,7 @@ export default function Converter() {
             );
           })}
         </AnimatePresence>
-      </ul>
+      </ul>}
     </section>
   );
 }

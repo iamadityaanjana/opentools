@@ -59,7 +59,9 @@ export default function LivePhotoPage({ children }: { children?: ReactNode }) {
   const [baseName, setBaseName] = useState('live-photo');
   const [stillFmt, setStillFmt] = useState<StillFmt>('jpeg');
   const [hasStill, setHasStill] = useState(false);
+  const [stillVersion, setStillVersion] = useState(0);
   const [hasVideo, setHasVideo] = useState(false);
+  const [videoVersion, setVideoVersion] = useState(0);
   const [videoVia, setVideoVia] = useState<EmbeddedVideo['via'] | 'separate-file' | null>(null);
 
   const [duration, setDuration] = useState(0);
@@ -67,6 +69,7 @@ export default function LivePhotoPage({ children }: { children?: ReactNode }) {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const stillCanvasRef = useRef<HTMLCanvasElement>(null);
+  const stillSourceRef = useRef<HTMLCanvasElement | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoUrlRef = useRef<string | null>(null);
 
@@ -81,22 +84,41 @@ export default function LivePhotoPage({ children }: { children?: ReactNode }) {
 
   const drawStill = useCallback(async (file: File) => {
     const { imageData } = await decodeToImageData(file);
-    const canvas = stillCanvasRef.current!;
+    const canvas = document.createElement('canvas');
     canvas.width = imageData.width;
     canvas.height = imageData.height;
     canvas.getContext('2d')!.putImageData(imageData, 0, 0);
+    stillSourceRef.current = canvas;
     setHasStill(true);
+    setStillVersion((version) => version + 1);
   }, []);
+
+  useEffect(() => {
+    if (!hasStill) return;
+    const source = stillSourceRef.current;
+    const display = stillCanvasRef.current;
+    if (!source || !display) return;
+    display.width = source.width;
+    display.height = source.height;
+    display.getContext('2d')!.drawImage(source, 0, 0);
+  }, [hasStill, stillVersion]);
 
   const attachVideo = useCallback((blob: Blob) => {
     revokeVideoUrl();
     const url = URL.createObjectURL(blob);
     videoUrlRef.current = url;
-    const v = videoRef.current!;
-    v.src = url;
-    v.load();
     setHasVideo(true);
+    setVideoVersion((version) => version + 1);
   }, [revokeVideoUrl]);
+
+  useEffect(() => {
+    if (!hasVideo) return;
+    const video = videoRef.current;
+    const url = videoUrlRef.current;
+    if (!video || !url) return;
+    video.src = url;
+    video.load();
+  }, [hasVideo, videoVersion]);
 
   const handleFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
@@ -104,6 +126,7 @@ export default function LivePhotoPage({ children }: { children?: ReactNode }) {
     setError(null);
     setNote(null);
     setHasStill(false);
+    stillSourceRef.current = null;
     setHasVideo(false);
     setVideoVia(null);
     setDuration(0);
@@ -164,7 +187,7 @@ export default function LivePhotoPage({ children }: { children?: ReactNode }) {
   }, []);
 
   const exportStill = useCallback(async () => {
-    const canvas = stillCanvasRef.current;
+    const canvas = stillSourceRef.current;
     if (!canvas) return;
     const type = stillFmt === 'png' ? 'image/png' : 'image/jpeg';
     const blob = await canvasToBlob(canvas, type, stillFmt === 'jpeg' ? 0.95 : undefined);
@@ -192,6 +215,7 @@ export default function LivePhotoPage({ children }: { children?: ReactNode }) {
     <div className="page page--tool">
       <TopNav />
       <main>
+      <div className="tool-workspace">
 
       <nav className="crumbs crumbs--sub">
         <Link className="crumbs__link" href="/image">Image tools</Link>
@@ -330,6 +354,7 @@ export default function LivePhotoPage({ children }: { children?: ReactNode }) {
               className="btn btn--ghost btn--icon"
               onClick={() => {
                 setHasStill(false);
+                stillSourceRef.current = null;
                 setHasVideo(false);
                 setVideoVia(null);
                 setNote(null);
@@ -343,6 +368,7 @@ export default function LivePhotoPage({ children }: { children?: ReactNode }) {
         </>
       )}
 
+      </div>
       <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />

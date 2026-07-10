@@ -322,6 +322,7 @@ export default function ImageComparatorPage({ children }: { children?: ReactNode
     <div className="page page--tool">
       <TopNav />
       <main>
+      <div className="tool-workspace">
 
       <nav className="crumbs crumbs--sub">
         <Link className="crumbs__link" href="/image">Image tools</Link>
@@ -447,6 +448,7 @@ export default function ImageComparatorPage({ children }: { children?: ReactNode
         <Link className="btn btn--pill btn--icon" href="/image"><ArrowLeft size={15} weight="bold" /> All image tools</Link>
       </div>
 
+      </div>
       <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />

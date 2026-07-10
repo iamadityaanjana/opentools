@@ -691,6 +691,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
     <div className="page page--tool">
       <TopNav />
       <main>
+      <div className="tool-workspace">
 
       <nav className="crumbs crumbs--sub">
         <Link className="crumbs__link" href={GROUP_HOME[cat.group]}>{GROUP_LABEL[cat.group]}</Link>
@@ -935,6 +936,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
           </AnimatePresence>
         </ul>
       )}
+      </div>
       <ToolEditorial>{children}</ToolEditorial>
       </main>
 

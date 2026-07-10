@@ -15,6 +15,7 @@ export default function ConvertPage({ children }: { children?: ReactNode }) {
     <div className="page page--tool">
       <TopNav />
       <main>
+      <div className="tool-workspace">
 
       <nav className="crumbs crumbs--sub">
         <Link className="crumbs__link" href="/image">Image tools</Link>
@@ -46,6 +47,7 @@ export default function ConvertPage({ children }: { children?: ReactNode }) {
       >
         <Converter />
       </Suspense>
+      </div>
       <ToolEditorial>{children}</ToolEditorial>
       </main>
 

@@ -116,6 +116,7 @@ export default function BatchRenamePage({ children }: { children?: ReactNode }) 
     <div className="page page--tool">
       <TopNav />
       <main>
+      <div className="tool-workspace">
 
       <nav className="crumbs crumbs--sub">
         <Link className="crumbs__link" href="/image">Image tools</Link>
@@ -253,6 +254,7 @@ export default function BatchRenamePage({ children }: { children?: ReactNode }) 
         <Link className="btn btn--pill btn--icon" href="/tools/rename-images"><ArrowLeft size={15} weight="bold" /> Rename Images (simple)</Link>
       </div>
 
+      </div>
       <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />
