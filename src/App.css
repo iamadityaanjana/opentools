@@ -979,6 +979,12 @@ a.megalink:hover {
   text-decoration: none;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
+.btn--github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
 .btn--ghost {
   background: transparent;
   font-family: var(--sans);
@@ -1784,6 +1790,9 @@ a.megalink:hover {
 }
 .mnav__list .megalink { font-size: 15px; padding: 8px 6px; }
 .mnav__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-top: auto;
   padding-top: 8px;
 }

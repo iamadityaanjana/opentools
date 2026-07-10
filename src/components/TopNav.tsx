@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CaretDown, List, X } from '@phosphor-icons/react';
+import { CaretDown, GithubLogo, List, X } from '@phosphor-icons/react';
 import { TOOL_BY_ID } from '../tools/catalog';
 
 function ToolMenu({ label, toolIds }: { label: string; toolIds: string[] }) {
@@ -53,6 +53,21 @@ function BookCall() {
   );
 }
 
+function GitHubButton() {
+  return (
+    <a
+      aria-label="View opentools on GitHub"
+      className="btn btn--pill btn--github"
+      href="https://github.com/iamadityaanjana/opentools"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <GithubLogo size={17} weight="fill" />
+      GitHub
+    </a>
+  );
+}
+
 /**
  * Shared top navigation.
  * - `minimal` (landing): logo + Book a call only.
@@ -84,6 +99,7 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
 
       {minimal ? (
         <div className="nav">
+          <GitHubButton />
           <BookCall />
         </div>
       ) : (
@@ -94,6 +110,7 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
             <ToolMenu label="Compress" toolIds={['compress-jpg', 'compress-png', 'compress-webp', 'batch-compress-images']} />
             <ToolMenu label="PDF tools" toolIds={['merge-pdfs', 'split-pdf', 'compress-pdf', 'pdf-to-jpg', 'images-to-pdf', 'delete-pages', 'rearrange-pages', 'pdf-to-text']} />
             <OtherMenu />
+            <GitHubButton />
             <BookCall />
           </div>
 
@@ -120,6 +137,7 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
             <Link className="mnav__guide" href="/about" onClick={close}>About</Link>
             <Link className="mnav__guide" href="/privacy" onClick={close}>Privacy</Link>
             <div className="mnav__foot">
+              <GitHubButton />
               <BookCall />
             </div>
           </div>

@@ -1,5 +1,12 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import '@fontsource/instrument-sans/latin-400.css';
+import '@fontsource/instrument-sans/latin-400-italic.css';
+import '@fontsource/instrument-sans/latin-500.css';
+import '@fontsource/instrument-sans/latin-600.css';
+import '@fontsource/instrument-sans/latin-700.css';
+import '@fontsource/instrument-serif/latin-400.css';
+import '@fontsource/instrument-serif/latin-400-italic.css';
 import { AnalyticsProvider } from '../components/AnalyticsProvider';
 import '../index.css';
 import '../App.css';
