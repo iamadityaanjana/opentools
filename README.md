@@ -35,7 +35,7 @@ Live at **[opentools.fun](https://www.opentools.fun)**.
 
 ## Getting started
 
-Requires **Node.js 20+** and npm.
+Requires **Node.js 22+** (24 LTS recommended — see [`.nvmrc`](.nvmrc)) and npm.
 
 ```bash
 git clone https://github.com/iamadityaanjana/opentools.git

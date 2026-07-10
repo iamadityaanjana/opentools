@@ -17,7 +17,8 @@ Please keep that promise intact in every contribution.
 
 ## Development setup
 
-Requires **Node.js 20+**.
+Requires **Node.js 22+** (24 LTS recommended). If you use `nvm`, run `nvm use`
+to match the version in [`.nvmrc`](.nvmrc).
 
 ```bash
 npm install
