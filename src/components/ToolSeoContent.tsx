@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { getToolContent } from '../content/tool-content';
+import { getToolPageContent } from '../content/tool-page-content';
 import { TOOL_BY_ID } from '../tools/catalog';
 
 export function ToolSeoContent({ toolId }: { toolId: string }) {
-  const content = getToolContent(toolId);
-  if (!content) return null;
+  const tool = TOOL_BY_ID.get(toolId);
+  if (!tool) return null;
+  const content = getToolPageContent(tool);
 
   const related = content.relatedToolIds
     .map((id) => TOOL_BY_ID.get(id))

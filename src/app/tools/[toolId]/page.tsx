@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { ToolClientPage } from '../../../components/ToolClientPage';
 import { ToolSeoContent } from '../../../components/ToolSeoContent';
 import { GuidesForTool } from '../../../components/GuidesForTool';
-import { getToolContent } from '../../../content/tool-content';
+import { getToolPageContent } from '../../../content/tool-page-content';
 import { CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL, TOOLS } from '../../../tools/catalog';
 
 const SITE_URL = 'https://www.opentools.fun';
@@ -23,8 +23,8 @@ export async function generateMetadata({ params }: ToolPageProps): Promise<Metad
   const { toolId } = await params;
   const tool = STATIC_TOOLS.find((item) => item.id === toolId);
   if (!tool) return {};
-  const content = getToolContent(tool.id);
-  const description = content?.description ?? tool.blurb ?? `${tool.name} online with local browser processing. Your selected files are not uploaded to opentools.`;
+  const content = getToolPageContent(tool);
+  const description = content.description;
   const canonical = `/tools/${tool.id}`;
   return {
     title: tool.name,
@@ -35,8 +35,14 @@ export async function generateMetadata({ params }: ToolPageProps): Promise<Metad
       url: canonical,
       title: `${tool.name} · opentools`,
       description,
+      images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: `${tool.name} on opentools` }],
     },
-    twitter: { title: `${tool.name} · opentools`, description },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${tool.name} · opentools`,
+      description,
+      images: ['/opengraph-image'],
+    },
   };
 }
 
@@ -45,10 +51,10 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const tool = STATIC_TOOLS.find((item) => item.id === toolId);
   if (!tool) notFound();
 
-  const content = getToolContent(tool.id);
+  const content = getToolPageContent(tool);
   const category = CATEGORY_BY_ID.get(tool.categoryId);
   const canonical = `${SITE_URL}/tools/${tool.id}`;
-  const description = content?.description ?? tool.blurb ?? `${tool.name} online with local browser processing. Your selected files are not uploaded to opentools.`;
+  const description = content.description;
   const groupPath = category ? GROUP_HOME[category.group] : '/image';
   const groupLabel = category ? GROUP_LABEL[category.group] : 'Image tools';
   const graph: Record<string, unknown>[] = [
@@ -69,11 +75,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
           { '@type': 'ListItem', position: 2, name: groupLabel, item: `${SITE_URL}${groupPath}` },
-          { '@type': 'ListItem', position: 3, name: tool.name },
+          { '@type': 'ListItem', position: 3, name: tool.name, item: canonical },
         ],
       },
     ];
-  if (content?.faqs.length) {
+  if (content.faqs.length) {
     graph.push({
       '@type': 'FAQPage',
       mainEntity: content.faqs.map((faq) => ({

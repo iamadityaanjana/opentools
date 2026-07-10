@@ -7,6 +7,10 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
       },
+      {
+        userAgent: ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended'],
+        allow: '/',
+      },
     ],
     sitemap: 'https://www.opentools.fun/sitemap.xml',
     host: 'https://www.opentools.fun',

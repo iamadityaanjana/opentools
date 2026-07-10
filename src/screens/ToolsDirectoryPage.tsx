@@ -44,7 +44,7 @@ function ToolCard({ tool, categoryIcon: Icon }: {
   if (tool.status === 'live' && tool.route) {
     return <Link className="tcard tcard--live" href={tool.route}>{body}</Link>;
   }
-  return <article className="tcard tcard--soon">{body}</article>;
+  return <article className="tcard tcard--soon" data-nosnippet>{body}</article>;
 }
 
 export default function ToolsDirectoryPage({ group, children }: { group: ToolGroup; children?: ReactNode }) {
@@ -62,7 +62,9 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
     )).sort((a, b) => Number(b.status === 'live') - Number(a.status === 'live')),
   })).filter(({ tools }) => tools.length > 0), [categories, normalizedQuery]);
 
-  const visibleCount = groups.reduce((count, item) => count + item.tools.length, 0);
+  const visibleTools = groups.flatMap((item) => item.tools);
+  const liveCount = visibleTools.filter((tool) => tool.status === 'live').length;
+  const soonCount = visibleTools.length - liveCount;
   const title = GROUP_LABEL[group];
   const isImage = group === 'image';
   const HeroIcon = isImage ? ImageSquare : FilePdf;
@@ -88,7 +90,7 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
         <section className="tools-hero">
           <div className="directory-hero__eyebrow">
             <HeroIcon size={16} weight="fill" />
-            {visibleCount} tool{visibleCount === 1 ? '' : 's'}
+            {liveCount} live{soonCount > 0 ? ` · ${soonCount} coming soon` : ''}
           </div>
           <h1 className="tools-title">{title}</h1>
           <p className="tools-sub">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ArrowsHorizontal, Stack, Images, UploadSimple, ArrowLeft, ShieldCheck, Warning, X,
@@ -8,6 +8,7 @@ import {
 import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { ToolEditorial } from '../components/ToolEditorial';
 import { decodeToImageData } from '../lib/decode';
 
 const MAX_W = 760;
@@ -159,7 +160,7 @@ function Dropslot({
   );
 }
 
-export default function ImageComparatorPage() {
+export default function ImageComparatorPage({ children }: { children?: ReactNode }) {
   const posthog = usePostHog();
   const [imgA, setImgA] = useState<Loaded | null>(null);
   const [imgB, setImgB] = useState<Loaded | null>(null);
@@ -318,7 +319,7 @@ export default function ImageComparatorPage() {
   const psnrLabel = diff ? (diff.psnr === Infinity ? '∞ (identical)' : `${diff.psnr.toFixed(2)} dB`) : '—';
 
   return (
-    <div className="page page--wide">
+    <div className="page page--tool">
       <TopNav />
       <main>
 
@@ -446,6 +447,7 @@ export default function ImageComparatorPage() {
         <Link className="btn btn--pill btn--icon" href="/image"><ArrowLeft size={15} weight="bold" /> All image tools</Link>
       </div>
 
+      <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />
     </div>

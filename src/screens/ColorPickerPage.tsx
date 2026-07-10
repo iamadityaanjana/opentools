@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   Eyedropper, UploadSimple, Copy, Check, Trash, ArrowLeft, ShieldCheck,
@@ -8,6 +8,7 @@ import {
 import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { ToolEditorial } from '../components/ToolEditorial';
 import { decodeToImageData } from '../lib/decode';
 import {
   type RGB,
@@ -53,7 +54,7 @@ function CopyChip({ label, value }: { label: string; value: string }) {
 
 let swatchSeq = 0;
 
-export default function ColorPickerPage() {
+export default function ColorPickerPage({ children }: { children?: ReactNode }) {
   const posthog = usePostHog();
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgVersion, setImgVersion] = useState(0);
@@ -216,7 +217,7 @@ export default function ColorPickerPage() {
   const currentHsl = current ? rgbToHsl(current) : null;
 
   return (
-    <div className="page page--wide">
+    <div className="page page--tool">
       <TopNav />
       <main>
 
@@ -350,6 +351,7 @@ export default function ColorPickerPage() {
         <Link className="btn btn--pill btn--icon" href="/tools/rgb-hex-converter"><ArrowLeft size={15} weight="bold" /> RGB ↔ HEX Converter</Link>
       </div>
 
+      <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />
     </div>

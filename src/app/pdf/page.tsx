@@ -2,12 +2,22 @@ import type { Metadata } from 'next';
 import ToolsDirectoryPage from '../../screens/ToolsDirectoryPage';
 import { CATEGORY_BY_ID, TOOLS } from '../../tools/catalog';
 import { GuideLinks } from '../../components/GuideLinks';
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
 
 export const metadata: Metadata = {
   title: 'Free online PDF tools',
   description: 'Merge, split, rotate, crop, compress, convert, organize, inspect, and edit PDFs locally in your browser.',
   alternates: { canonical: '/pdf' },
-  openGraph: { url: '/pdf', title: 'Free online PDF tools · opentools' },
+  openGraph: {
+    url: '/pdf',
+    title: 'Free online PDF tools · opentools',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free online PDF tools · opentools',
+    images: [DEFAULT_TWITTER_IMAGE],
+  },
 };
 
 export default function PdfToolsPage() {

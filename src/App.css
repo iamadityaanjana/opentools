@@ -28,6 +28,18 @@ body {
 .page--wide {
   max-width: 1080px;
 }
+.page--tool {
+  width: 100%;
+  max-width: none;
+  padding-inline: clamp(16px, 3vw, 48px);
+}
+.tool-editorial {
+  width: min(100%, 980px);
+  margin-inline: auto;
+}
+.tool-editorial .article-prose {
+  margin-inline: auto;
+}
 .page--landing {
   min-height: 100vh;
   display: flex;

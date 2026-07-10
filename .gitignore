@@ -12,6 +12,7 @@ node_modules
 dist
 dist-ssr
 public/pdf.worker.min.mjs
+public/indexnow-key.txt
 *.local
 *.tsbuildinfo
 

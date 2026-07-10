@@ -5,7 +5,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { DotsThinking } from './Thinking';
 
 const loading = () => (
-  <div className="page page--wide">
+  <div className="page page--tool">
     <div className="loading-panel"><DotsThinking label="Loading tool" /></div>
   </div>
 );
@@ -18,7 +18,7 @@ const BatchRenamePage = dynamic(() => import('../screens/BatchRenamePage'), { lo
 const LivePhotoPage = dynamic(() => import('../screens/LivePhotoPage'), { loading });
 const ImageComparatorPage = dynamic(() => import('../screens/ImageComparatorPage'), { loading });
 
-const CUSTOM_PAGES: Record<string, ComponentType> = {
+const CUSTOM_PAGES: Record<string, ComponentType<{ children?: ReactNode }>> = {
   'color-picker': ColorPickerPage,
   'rgb-hex-converter': RgbHexPage,
   'rename-images': RenameImagesPage,
@@ -29,6 +29,6 @@ const CUSTOM_PAGES: Record<string, ComponentType> = {
 
 export function ToolClientPage({ toolId, children }: { toolId: string; children?: ReactNode }) {
   const CustomPage = CUSTOM_PAGES[toolId];
-  if (CustomPage) return <CustomPage />;
+  if (CustomPage) return <CustomPage>{children}</CustomPage>;
   return <ToolRunner toolId={toolId}>{children}</ToolRunner>;
 }

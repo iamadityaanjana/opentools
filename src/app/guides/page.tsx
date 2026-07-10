@@ -4,12 +4,22 @@ import { ArrowUpRight, BookOpenText } from '@phosphor-icons/react/dist/ssr';
 import { ARTICLES } from '../../content/articles';
 import { TopNav } from '../../components/TopNav';
 import { SiteFooter } from '../../components/SiteFooter';
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
 
 export const metadata: Metadata = {
   title: 'Image and PDF guides',
   description: 'Practical, sourced guides to image formats, compression, resizing, metadata privacy, PDF creation, GIF optimization, and browser-local processing.',
   alternates: { canonical: '/guides' },
-  openGraph: { url: '/guides', title: 'Image and PDF guides · opentools' },
+  openGraph: {
+    url: '/guides',
+    title: 'Image and PDF guides · opentools',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Image and PDF guides · opentools',
+    images: [DEFAULT_TWITTER_IMAGE],
+  },
 };
 
 export default function GuidesPage() {

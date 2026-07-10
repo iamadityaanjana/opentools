@@ -27,6 +27,7 @@ import { DotsThinking } from '../components/Thinking';
 import { SiteFooter } from '../components/SiteFooter';
 import { getToolContent } from '../content/tool-content';
 import { PdfPageEditor } from '../components/PdfPageEditor';
+import { ToolEditorial } from '../components/ToolEditorial';
 
 interface Job {
   id: string;
@@ -645,7 +646,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
 
   if (!tool || !op) {
     return (
-      <div className="page page--wide">
+      <div className="page page--tool">
         <TopNav />
         <p className="tools-empty">Tool not found. <Link href="/image">Back to image tools</Link>.</p>
       </div>
@@ -687,7 +688,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
   );
 
   return (
-    <div className="page page--wide">
+    <div className="page page--tool">
       <TopNav />
       <main>
 
@@ -934,7 +935,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
           </AnimatePresence>
         </ul>
       )}
-      {children}
+      <ToolEditorial>{children}</ToolEditorial>
       </main>
 
       <SiteFooter />

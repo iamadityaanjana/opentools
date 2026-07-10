@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         destination: '/image',
         permanent: true,
       },
+      {
+        source: '/tools/image-converter',
+        destination: '/convert',
+        permanent: true,
+      },
     ];
   },
 };

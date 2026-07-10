@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { ARTICLES } from '../content/articles';
+import { getToolPageContent } from '../content/tool-page-content';
 import { TOOLS } from '../tools/catalog';
 
 const SITE_URL = 'https://www.opentools.fun';
@@ -21,7 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     .filter((tool) => tool.status === 'live' && tool.route && tool.route !== '/convert')
     .map((tool) => ({
       url: `${SITE_URL}${tool.route}`,
-      lastModified: LAST_MODIFIED,
+      lastModified: new Date(`${getToolPageContent(tool).reviewedAt}T00:00:00.000Z`),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     }));

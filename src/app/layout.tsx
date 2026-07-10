@@ -58,6 +58,7 @@ const siteJsonLd = {
       name: 'opentools',
       url: `${SITE_URL}/`,
       logo: `${SITE_URL}/icon.svg`,
+      sameAs: ['https://github.com/iamadityaanjana/opentools'],
     },
     {
       '@type': 'WebSite',

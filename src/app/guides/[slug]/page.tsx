@@ -6,6 +6,7 @@ import { TOOL_BY_ID } from '../../../tools/catalog';
 import { TopNav } from '../../../components/TopNav';
 import { SiteFooter } from '../../../components/SiteFooter';
 import { TrackedToolLink } from '../../../components/TrackedToolLink';
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../../lib/seo';
 
 const SITE_URL = 'https://www.opentools.fun';
 
@@ -36,8 +37,14 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       description: article.description,
       publishedTime: article.publishedAt,
       modifiedTime: article.updatedAt,
+      images: [{ ...DEFAULT_OG_IMAGE, alt: article.title }],
     },
-    twitter: { title: article.title, description: article.description },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.description,
+      images: [DEFAULT_TWITTER_IMAGE],
+    },
   };
 }
 
@@ -72,7 +79,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
           { '@type': 'ListItem', position: 2, name: 'Guides', item: `${SITE_URL}/guides` },
-          { '@type': 'ListItem', position: 3, name: article.title },
+          { '@type': 'ListItem', position: 3, name: article.title, item: canonical },
         ],
       },
     ],

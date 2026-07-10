@@ -8,7 +8,7 @@ import { PlusGrid } from '../components/PlusGrid';
 import { BlinkingCursor } from '../components/Thinking';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
-import { TOTAL_COUNT, GROUP_HOME } from '../tools/catalog';
+import { LIVE_COUNT, GROUP_HOME } from '../tools/catalog';
 
 export default function Landing() {
   const posthog = usePostHog();
@@ -37,7 +37,7 @@ export default function Landing() {
           <span className="kw kw--purple">PDF</span> and more.
         </p>
         <p className="hero__sub">
-          {TOTAL_COUNT}+ tools · no account · files process locally <BlinkingCursor />
+          {LIVE_COUNT} live tools · no account · files process locally <BlinkingCursor />
         </p>
 
         <div className="hero__cta">

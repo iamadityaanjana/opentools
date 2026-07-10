@@ -5,13 +5,14 @@ import { DotsThinking } from '../components/Thinking';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { getToolContent } from '../content/tool-content';
+import { ToolEditorial } from '../components/ToolEditorial';
 
 const Converter = lazy(() => import('../components/Converter'));
 
 export default function ConvertPage({ children }: { children?: ReactNode }) {
   const content = getToolContent('image-converter');
   return (
-    <div className="page page--wide">
+    <div className="page page--tool">
       <TopNav />
       <main>
 
@@ -45,7 +46,7 @@ export default function ConvertPage({ children }: { children?: ReactNode }) {
       >
         <Converter />
       </Suspense>
-      {children}
+      <ToolEditorial>{children}</ToolEditorial>
       </main>
 
       <SiteFooter />

@@ -3,6 +3,7 @@ import ConvertPage from '../../screens/ConvertPage';
 import { ToolSeoContent } from '../../components/ToolSeoContent';
 import { getToolContent } from '../../content/tool-content';
 import { GuideLinks } from '../../components/GuideLinks';
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
 
 export const metadata: Metadata = {
   title: 'Image converter — JPG, PNG, WebP, AVIF, HEIC and more',
@@ -12,6 +13,13 @@ export const metadata: Metadata = {
     url: '/convert',
     title: 'Private online image converter · opentools',
     description: 'Convert images locally in your browser with no account required.',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Private online image converter · opentools',
+    description: 'Convert images locally in your browser with no account required.',
+    images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 
@@ -28,13 +36,14 @@ export default function ImageConverterPage() {
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      isPartOf: { '@id': 'https://www.opentools.fun/#website' },
     },
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.opentools.fun/' },
         { '@type': 'ListItem', position: 2, name: 'Image tools', item: 'https://www.opentools.fun/image' },
-        { '@type': 'ListItem', position: 3, name: 'Image Converter' },
+        { '@type': 'ListItem', position: 3, name: 'Image Converter', item: canonical },
       ],
     },
   ];

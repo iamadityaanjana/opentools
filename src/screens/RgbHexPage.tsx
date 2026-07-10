@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Swatches, Copy, Check, ArrowLeft, ShieldCheck } from '@phosphor-icons/react';
 import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { ToolEditorial } from '../components/ToolEditorial';
 import {
   type RGB,
   type HSL,
@@ -69,7 +70,7 @@ function NumField({
   );
 }
 
-export default function RgbHexPage() {
+export default function RgbHexPage({ children }: { children?: ReactNode }) {
   const posthog = usePostHog();
   // RGB is the single source of truth; HEX & HSL derive from it.
   const [rgb, setRgb] = useState<RGB>({ r: 79, g: 70, b: 229 });
@@ -110,7 +111,7 @@ export default function RgbHexPage() {
   }, [posthog]);
 
   return (
-    <div className="page page--wide">
+    <div className="page page--tool">
       <TopNav />
       <main>
 
@@ -199,6 +200,7 @@ export default function RgbHexPage() {
         <Link className="btn btn--pill btn--icon" href="/tools/color-picker"><ArrowLeft size={15} weight="bold" /> Color Picker</Link>
       </div>
 
+      <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />
     </div>

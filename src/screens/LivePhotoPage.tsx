@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   FilmStrip, UploadSimple, DownloadSimple, Trash, ShieldCheck, ImageSquare, VideoCamera,
@@ -8,6 +8,7 @@ import {
 import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { ToolEditorial } from '../components/ToolEditorial';
 import { Dropdown } from '../components/Dropdown';
 import { decodeToImageData } from '../lib/decode';
 import { extractEmbeddedVideo, type EmbeddedVideo } from '../lib/motionPhoto';
@@ -48,7 +49,7 @@ function triggerDownload(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-export default function LivePhotoPage() {
+export default function LivePhotoPage({ children }: { children?: ReactNode }) {
   const posthog = usePostHog();
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -188,7 +189,7 @@ export default function LivePhotoPage() {
   const loaded = hasStill || hasVideo;
 
   return (
-    <div className="page page--wide">
+    <div className="page page--tool">
       <TopNav />
       <main>
 
@@ -342,6 +343,7 @@ export default function LivePhotoPage() {
         </>
       )}
 
+      <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />
     </div>

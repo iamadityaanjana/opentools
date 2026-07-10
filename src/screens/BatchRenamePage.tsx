@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   Textbox, UploadSimple, DownloadSimple, Trash, X, ArrowLeft, ShieldCheck, Warning,
@@ -8,6 +8,7 @@ import {
 import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { ToolEditorial } from '../components/ToolEditorial';
 import { Dropdown } from '../components/Dropdown';
 import { formatBytes } from '../lib/convert';
 import {
@@ -22,7 +23,7 @@ interface Item {
 
 let seq = 0;
 
-export default function BatchRenamePage() {
+export default function BatchRenamePage({ children }: { children?: ReactNode }) {
   const posthog = usePostHog();
   const [items, setItems] = useState<Item[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -112,7 +113,7 @@ export default function BatchRenamePage() {
   const hasFiles = items.length > 0;
 
   return (
-    <div className="page page--wide">
+    <div className="page page--tool">
       <TopNav />
       <main>
 
@@ -252,6 +253,7 @@ export default function BatchRenamePage() {
         <Link className="btn btn--pill btn--icon" href="/tools/rename-images"><ArrowLeft size={15} weight="bold" /> Rename Images (simple)</Link>
       </div>
 
+      <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />
     </div>

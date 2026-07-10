@@ -2,7 +2,7 @@ const host = process.env.INDEXNOW_HOST ?? 'www.opentools.fun';
 const key = process.env.INDEXNOW_KEY;
 
 if (!key) {
-  console.error('INDEXNOW_KEY is required. Publish the same key at /<key>.txt before submitting.');
+  console.error('INDEXNOW_KEY is required. The build publishes it at /indexnow-key.txt.');
   process.exit(1);
 }
 
@@ -18,7 +18,7 @@ const response = await fetch('https://api.indexnow.org/indexnow', {
   body: JSON.stringify({
     host,
     key,
-    keyLocation: `https://${host}/${key}.txt`,
+    keyLocation: `https://${host}/indexnow-key.txt`,
     urlList,
   }),
 });

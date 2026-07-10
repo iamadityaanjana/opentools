@@ -2,12 +2,22 @@ import type { Metadata } from 'next';
 import ToolsDirectoryPage from '../../screens/ToolsDirectoryPage';
 import { CATEGORY_BY_ID, TOOLS } from '../../tools/catalog';
 import { GuideLinks } from '../../components/GuideLinks';
+import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
 
 export const metadata: Metadata = {
   title: 'Free online image tools',
   description: 'Convert, resize, compress, edit, organize, and inspect images locally in your browser. No account and no uploads to opentools.',
   alternates: { canonical: '/image' },
-  openGraph: { url: '/image', title: 'Free online image tools · opentools' },
+  openGraph: {
+    url: '/image',
+    title: 'Free online image tools · opentools',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free online image tools · opentools',
+    images: [DEFAULT_TWITTER_IMAGE],
+  },
 };
 
 export default function ImageToolsPage() {
