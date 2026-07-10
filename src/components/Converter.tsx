@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   UploadSimple,
@@ -63,6 +63,17 @@ export default function Converter() {
 
   const isLossy = ['jpeg', 'webp', 'avif', 'pdf'].includes(target);
 
+  // Changing the target format or quality rolls already-converted images back
+  // to "pending" so the user can just press Convert again on the same uploads —
+  // no need to re-add the files.
+  useEffect(() => {
+    setJobs((prev) => prev.map((j) => {
+      if (j.status !== 'success' && j.status !== 'failed') return j;
+      if (j.result) URL.revokeObjectURL(j.result.url);
+      return { ...j, status: 'pending', result: undefined, error: undefined };
+    }));
+  }, [target, quality]);
+
   const setJob = useCallback((id: string, patch: Partial<Job>) => {
     setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, ...patch } : j)));
   }, []);
@@ -125,13 +136,6 @@ export default function Converter() {
     });
     pending.forEach((j) => runJob(j, target, quality));
   }, [jobs, runJob, target, quality, posthog]);
-
-  const reconvertAll = useCallback(() => {
-    jobs.forEach((j) => {
-      setJob(j.id, { status: 'pending', result: undefined, error: undefined });
-      runJob(j, target, quality);
-    });
-  }, [jobs, runJob, target, quality, setJob]);
 
   const downloadAll = useCallback(async () => {
     const completed = jobs.filter((j) => j.result);
@@ -212,11 +216,6 @@ export default function Converter() {
             {doneCount > 1 && (
               <button className="btn btn--icon" onClick={downloadAll} disabled={isWorking}>
                 <DownloadSimple size={15} weight="bold" /> All
-              </button>
-            )}
-            {jobs.some((j) => j.status === 'success') && (
-              <button className="btn btn--ghost" onClick={reconvertAll} disabled={isWorking}>
-                Re-run
               </button>
             )}
             {jobs.length > 0 && (

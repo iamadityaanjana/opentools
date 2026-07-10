@@ -237,6 +237,19 @@ a.megalink:hover {
   margin-left: 0;
   margin-bottom: 16px;
 }
+.controls__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: #b4231a;
+  background: #fdecea;
+  border: 1px solid #f6c9c4;
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+.controls__error svg { flex-shrink: 0; }
 
 /* ---- Editor split layout (controls + live preview) ---- */
 .editor {
@@ -1686,14 +1699,150 @@ a.megalink:hover {
 
 @media (max-width: 820px) {
   .editor2__body--split { grid-template-columns: 1fr; }
+  .editor--split { grid-template-columns: 1fr; }
   .megamenu { width: min(92vw, 640px); }
 }
 
+/* ---- Mobile hamburger nav ---- */
+.nav__burger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.mnav__scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 20, 0.4);
+  z-index: 90;
+  animation: fadeIn 0.15s ease;
+}
+.mnav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 100;
+  width: min(86vw, 340px);
+  height: 100dvh;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  box-shadow: -18px 0 44px rgba(0, 0, 0, 0.14);
+  padding: 76px 16px 24px;
+  overflow-y: auto;
+  animation: slideIn 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mnav__quick {
+  display: flex;
+  gap: 8px;
+}
+.mnav__quick .btn { flex: 1; text-align: center; justify-content: center; }
+.mnav__cats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mnav__cat {
+  border-bottom: 1px solid var(--line);
+}
+.mnav__cathead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 13px 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.mnav__catlabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.mnav__caret {
+  color: var(--muted);
+  transition: transform 0.18s ease;
+}
+.mnav__cat.is-open .mnav__caret { transform: rotate(180deg); }
+.mnav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 10px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mnav__list .megalink { font-size: 15px; padding: 8px 6px; }
+.mnav__foot {
+  margin-top: auto;
+  padding-top: 8px;
+}
+.mnav__foot .btn { width: 100%; text-align: center; justify-content: center; }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 860px) {
+  .nav--desktop { display: none; }
+  .nav__burger { display: inline-flex; }
+}
+
 @media (max-width: 560px) {
-  .hero__hi { font-size: 42px; }
-  .hero__lead { font-size: 22px; }
+  .page { padding: 16px 16px 64px; }
+  .logo { font-size: 20px; }
+
+  .hero { margin-top: 24px; }
+  .hero__hi { font-size: 38px; margin-bottom: 12px; }
+  .hero__lead { font-size: 20px; margin: 18px 0 6px; }
+  .hero__sub { font-size: 14px; }
+  .hero__cta { flex-wrap: wrap; gap: 10px; }
+  .hero__cta .btn { flex: 1 1 auto; justify-content: center; }
+  .plusgrid { font-size: 26px; }
+
+  .tool-hero {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 22px 0 18px;
+  }
+  .tool-hero__icon { width: 44px; height: 44px; }
+  .tool-title { font-size: 28px; }
+  .tool-desc { font-size: 13px; }
+  /* The "100% on-device" pill is decorative — hide it on small screens. */
+  .privacy-pill { display: none; }
+
+  .tools-title { font-size: 38px; }
+
+  .crumbs--sub { margin-top: 16px; }
+
+  .controls__actions--full { flex-wrap: wrap; }
+  .controls__actions--full .btn { flex: 1 1 auto; justify-content: center; }
+
   .job { flex-direction: column; align-items: stretch; }
   .job__side { flex-direction: row; justify-content: space-between; align-items: center; }
+
+  .preview-head__note { display: none; }
+  .preview-img { max-height: 52vh; }
 }
 
 /* ---- Copy chips (color tools) ---- */

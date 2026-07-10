@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   UploadSimple, DownloadSimple, Lightning, Trash, X, ArrowLeft, Copy, Check, ImageBroken, DotsSixVertical,
-  ArrowClockwise, ArrowCounterClockwise, FlipHorizontal, FlipVertical,
+  ArrowClockwise, ArrowCounterClockwise, FlipHorizontal, FlipVertical, Warning,
 } from '@phosphor-icons/react';
 import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
@@ -34,6 +34,72 @@ interface Job {
 const NO_PREVIEW = new Set(['compress', 'passthrough', 'convertJpeg', 'base64', 'datauri', 'colorPalette', 'colorCount', 'pdfToImages', 'extractImagesFromPdf', 'viewExif', 'changeDpi']);
 const PREVIEW_MAX = 900;
 const ENCODABLE = new Set(['jpeg', 'png', 'webp', 'avif']);
+
+// Guardrails so a stray value (e.g. width: 999999) can't freeze or crash the
+// tab. These are deliberately generous — they only catch pathological sizes,
+// not normal high-res photos.
+const MAX_DIM = 16384;            // max px on a single side
+const MAX_AREA = 100_000_000;     // ~100 megapixels total
+
+function numError(label: string, v: unknown, min: number, max: number): string | null {
+  const n = Number(v);
+  if (v === '' || v === null || v === undefined || !Number.isFinite(n)) return `${label} must be a number.`;
+  if (n < min) return `${label} must be at least ${min.toLocaleString()}.`;
+  if (n > max) return `${label} can’t exceed ${max.toLocaleString()} px.`;
+  return null;
+}
+
+// Validate the size-related params for the current op. Returns a friendly
+// message when something is out of range, or null when everything's fine.
+function dimErrorFor(opId: string | undefined, p: Params, full: { w: number; h: number } | null): string | null {
+  if (!opId) return null;
+  const tooMuch = (w: number, h: number) =>
+    w > MAX_DIM || h > MAX_DIM
+      ? `Result would be larger than ${MAX_DIM.toLocaleString()} px on a side — please use a smaller value.`
+      : w * h > MAX_AREA
+        ? 'Result exceeds the ~100 MP the browser can safely process — please use a smaller value.'
+        : null;
+
+  if (opId === 'resize') {
+    if (p.unit === 'percent') {
+      const e = numError('Scale', p.width, 1, 10000); if (e) return e;
+      if (!p.keepAspect) { const e2 = numError('Vertical scale', p.height, 1, 10000); if (e2) return e2; }
+      if (full) {
+        const w = (full.w * Number(p.width)) / 100;
+        const h = (full.h * (p.keepAspect ? Number(p.width) : Number(p.height))) / 100;
+        return tooMuch(w, h);
+      }
+      return null;
+    }
+    const ew = numError('Width', p.width, 1, MAX_DIM); if (ew) return ew;
+    const eh = numError('Height', p.height, 1, MAX_DIM); if (eh) return eh;
+    return tooMuch(Number(p.width), Number(p.height));
+  }
+
+  if (opId === 'canvas-size') {
+    const ew = numError('Canvas width', p.width, 1, MAX_DIM); if (ew) return ew;
+    const eh = numError('Canvas height', p.height, 1, MAX_DIM); if (eh) return eh;
+    return tooMuch(Number(p.width), Number(p.height));
+  }
+
+  if (opId === 'crop' && full) {
+    const x = Number(p.x), y = Number(p.y), w = Number(p.w), h = Number(p.h);
+    if (![x, y, w, h].every(Number.isFinite)) return 'Crop values must be numbers.';
+    if (w < 1 || h < 1) return 'Crop width and height must be at least 1 px.';
+    if (x < 0 || y < 0) return 'Crop position can’t be negative.';
+    if (x >= full.w || y >= full.h) return `Crop starts outside the image (${full.w}×${full.h}).`;
+    if (x + w > full.w || y + h > full.h) return `Crop area extends past the image edge (${full.w}×${full.h}).`;
+    return null;
+  }
+
+  if (opId === 'merge' || opId === 'collage') {
+    const ew = numError('Canvas width', p.canvasW, 1, MAX_DIM); if (ew) return ew;
+    if (p.canvasH !== undefined) { const eh = numError('Canvas height', p.canvasH, 1, MAX_DIM); if (eh) return eh; }
+    return null;
+  }
+
+  return null;
+}
 
 // Resolve a job's output format id, honouring "Keep original" (auto) by
 // detecting the uploaded file's format and falling back to JPEG when the
@@ -266,6 +332,13 @@ export default function ToolRunner() {
     return 'png';
   }, [op, activeParams.format]);
 
+  // Validate size params so out-of-range values surface a message and block
+  // processing instead of freezing/crashing the tab.
+  const dimError = useMemo(() => {
+    const full = previewSrc ? { w: previewSrc.fullW, h: previewSrc.fullH } : null;
+    return dimErrorFor(tool?.op, isCombine ? comboParams : activeParams, full);
+  }, [tool?.op, isCombine, comboParams, activeParams, previewSrc]);
+
   const getPreviewSource = useCallback(async (file: File): Promise<PreviewSource> => {
     const key = `${file.name}:${file.size}:${file.lastModified}`;
     const cached = cacheRef.current.get(key);
@@ -341,6 +414,7 @@ export default function ToolRunner() {
   // live preview (debounced)
   useEffect(() => {
     if (!previewable || isCrop || isSplit) return;
+    if (dimError) return; // don't try to render an out-of-range canvas
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
@@ -360,7 +434,7 @@ export default function ToolRunner() {
       }
     }, 120);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isSplit, isCombine, isPdf, isGifCombine, isMerge, isCollage, op]);
+  }, [activeParams, comboParams, previewSrc, previewSrcs, previewable, isCrop, isSplit, isCombine, isPdf, isGifCombine, isMerge, isCollage, op, dimError]);
 
   // GIF frame-strip preview: decode the active GIF into small thumbnails.
   useEffect(() => {
@@ -399,9 +473,21 @@ export default function ToolRunner() {
   }, [isGifInput, activeJob]);
 
   // ---- param setters ----
+  // Re-processing the same upload: whenever params change, roll a finished job
+  // back to "pending" (dropping its stale result) so the Convert button
+  // re-enables and re-runs on the already-loaded image — no re-upload needed.
+  const resetJob = useCallback((id: string) => {
+    setJobs((prev) => prev.map((j) => {
+      if (j.id !== id || j.status === 'pending' || j.status === 'working') return j;
+      if (j.result) URL.revokeObjectURL(j.result.url);
+      return { ...j, status: 'pending', result: undefined, error: undefined };
+    }));
+  }, []);
+
   const setParam = useCallback((key: string, val: string | number | boolean) => {
-    if (isCombine) { setComboParams((p) => ({ ...p, [key]: val })); return; }
+    if (isCombine) { setComboParams((p) => ({ ...p, [key]: val })); setCombined(null); return; }
     if (!activeJob) return;
+    resetJob(activeJob.id);
     if (tool?.op === 'resize' && key === 'unit') {
       const patch: Params = val === 'percent'
         ? { unit: 'percent', width: 100, height: 100, keepAspect: true }
@@ -410,12 +496,13 @@ export default function ToolRunner() {
       return;
     }
     setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), [key]: val } }));
-  }, [isCombine, activeJob, tool, previewSrc, defaults]);
+  }, [isCombine, activeJob, tool, previewSrc, defaults, resetJob]);
 
   const patchCrop = useCallback((patch: Partial<Params>) => {
     if (!activeJob) return;
+    resetJob(activeJob.id);
     setParamsById((prev) => ({ ...prev, [activeJob.id]: { ...(prev[activeJob.id] ?? defaults), ...patch } as Params }));
-  }, [activeJob, defaults]);
+  }, [activeJob, defaults, resetJob]);
 
   const rotateStep = useCallback((dir: 1 | -1) => {
     const order = [90, 180, 270];
@@ -504,6 +591,7 @@ export default function ToolRunner() {
   const convert = isCombine ? runCombine : runEach;
 
   const handleConvert = useCallback(() => {
+    if (dimError) return;
     posthog?.capture('tool_run', {
       tool_id: toolId,
       tool_name: tool?.name,
@@ -511,7 +599,7 @@ export default function ToolRunner() {
       is_combine_mode: isCombine,
     });
     convert();
-  }, [posthog, toolId, tool, jobs.length, isCombine, convert]);
+  }, [dimError, posthog, toolId, tool, jobs.length, isCombine, convert]);
 
   const downloadAll = useCallback(async () => {
     for (const j of jobs) {
@@ -571,7 +659,7 @@ export default function ToolRunner() {
 
   const actionsBlock = (
     <div className="controls__actions controls__actions--full">
-      <button className="btn btn--dark btn--icon" onClick={handleConvert} disabled={!hasFiles || isWorking || (!isCombine && pendingCount === 0)}>
+      <button className="btn btn--dark btn--icon" onClick={handleConvert} disabled={!hasFiles || isWorking || !!dimError || (!isCombine && pendingCount === 0)}>
         <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `${verb}${pendingCount ? ` ${pendingCount}` : ''}`}
       </button>
       {!isCombine && jobs.filter((j) => j.result).length > 1 && (
@@ -758,6 +846,7 @@ export default function ToolRunner() {
                 <div className="editor2__active">Editing: <strong>{activeJob.file.name}</strong></div>
               )}
               {controlsBlock}
+              {dimError && <div className="controls__error"><Warning size={15} weight="fill" /> {dimError}</div>}
               {actionsBlock}
             </div>
           </div>
