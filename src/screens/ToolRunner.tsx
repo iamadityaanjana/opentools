@@ -746,7 +746,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                   onClick={() => setActiveId(j.id)}
                   title={j.file.name}
                 >
-                  {isPdfInput ? <FilePdfThumb name={j.file.name} /> : <img src={j.previewUrl} alt="" />}
+                  {isPdfInput ? <FilePdfThumb name={j.file.name} /> : <SmartThumb file={j.file} src={j.previewUrl} className="" />}
                   <span className="imgselect__x" onClick={(e) => { e.stopPropagation(); removeJob(j.id); }}><X size={11} /></span>
                 </button>
               ))}
@@ -824,7 +824,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                       {jobs.map((j, i) => (
                         <div key={j.id} className="reorder__item" draggable onDragStart={() => { reorderFrom.current = i; }} onDrop={() => reorder(i)} title="Drag to reorder">
                           <DotsSixVertical size={14} className="reorder__grip" />
-                          {isPdfInput ? <FilePdfThumb name={j.file.name} /> : <img className="reorder__thumb" src={j.previewUrl} alt="" />}
+                          {isPdfInput ? <FilePdfThumb name={j.file.name} /> : <SmartThumb file={j.file} src={j.previewUrl} className="reorder__thumb" />}
                           <span className="reorder__idx">{i + 1}</span>
                           <button className="job__remove" onClick={() => removeJob(j.id)} aria-label="Remove"><X size={12} /></button>
                         </div>
@@ -839,7 +839,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                       {jobs.map((j, i) => (
                         <div key={j.id} className="reorder__item" draggable onDragStart={() => { reorderFrom.current = i; }} onDrop={() => reorder(i)} title="Drag to reorder">
                           <DotsSixVertical size={14} className="reorder__grip" />
-                          <img className="reorder__thumb" src={j.previewUrl} alt="" />
+                          <SmartThumb file={j.file} src={j.previewUrl} className="reorder__thumb" />
                           <span className="reorder__idx">{i + 1}</span>
                           <button className="job__remove" onClick={() => removeJob(j.id)} aria-label="Remove"><X size={12} /></button>
                         </div>
@@ -852,7 +852,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                       {jobs.map((j, i) => (
                         <div key={j.id} className="reorder__item" draggable onDragStart={() => { reorderFrom.current = i; }} onDrop={() => reorder(i)} title="Drag to reorder">
                           <DotsSixVertical size={14} className="reorder__grip" />
-                          <img className="reorder__thumb" src={j.previewUrl} alt="" />
+                          {isPdfInput ? <FilePdfThumb name={j.file.name} /> : <SmartThumb file={j.file} src={j.previewUrl} className="reorder__thumb" />}
                           <span className="reorder__idx">{i + 1}</span>
                           <button className="job__remove" onClick={() => removeJob(j.id)} aria-label="Remove"><X size={12} /></button>
                         </div>
@@ -945,14 +945,76 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
   );
 }
 
-function JobThumb({ job }: { job: Job }) {
+const isPdfFile = (file: File) => file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+// Cache decoded thumbnails so we never re-decode the same file for the same size.
+const thumbCache = new WeakMap<File, string>();
+
+async function makeThumbDataUrl(file: File, max = 200): Promise<string> {
+  const cached = thumbCache.get(file);
+  if (cached) return cached;
+  const { imageData } = await decodeToImageData(file);
+  const source = document.createElement('canvas');
+  source.width = imageData.width;
+  source.height = imageData.height;
+  source.getContext('2d')!.putImageData(imageData, 0, 0);
+  const scale = Math.min(1, max / Math.max(imageData.width, imageData.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(imageData.width * scale));
+  canvas.height = Math.max(1, Math.round(imageData.height * scale));
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  const url = canvas.toDataURL('image/png');
+  thumbCache.set(file, url);
+  return url;
+}
+
+/**
+ * Thumbnail that survives formats the browser can't paint natively (HEIC, TIFF,
+ * JP2, some ICO/AVIF). It first tries the raw object URL and, on failure,
+ * decodes the file to a small PNG data URL before giving up with a broken icon.
+ */
+function SmartThumb({ file, src, className = 'thumb' }: { file: File; src: string; className?: string }) {
+  const [decoded, setDecoded] = useState<string | null>(null);
   const [broken, setBroken] = useState(false);
-  const src = job.result?.url && job.result.filename.match(/\.(png|jpe?g|webp|avif|gif|bmp)$/i) ? job.result.url : job.previewUrl;
-  if (job.file.type === 'application/pdf' || /\.pdf$/i.test(job.file.name)) {
+  const [attemptDecode, setAttemptDecode] = useState(false);
+
+  useEffect(() => {
+    setDecoded(null);
+    setBroken(false);
+    setAttemptDecode(false);
+  }, [file, src]);
+
+  useEffect(() => {
+    if (!attemptDecode) return;
+    let cancelled = false;
+    makeThumbDataUrl(file)
+      .then((url) => { if (!cancelled) setDecoded(url); })
+      .catch(() => { if (!cancelled) setBroken(true); });
+    return () => { cancelled = true; };
+  }, [attemptDecode, file]);
+
+  if (broken) return <div className={`${className} thumb--fallback`}><ImageBroken size={20} /></div>;
+  const finalSrc = decoded ?? src;
+  return (
+    <img
+      className={className}
+      src={finalSrc}
+      alt=""
+      loading="lazy"
+      onError={() => { if (decoded) setBroken(true); else setAttemptDecode(true); }}
+    />
+  );
+}
+
+function JobThumb({ job }: { job: Job }) {
+  const outIsImage = job.result?.url && /\.(png|jpe?g|webp|avif|gif|bmp)$/i.test(job.result.filename);
+  if (isPdfFile(job.file) && !outIsImage) {
     return <div className="thumb thumb--fallback"><FilePdf size={20} weight="fill" /></div>;
   }
-  if (broken) return <div className="thumb thumb--fallback"><ImageBroken size={20} /></div>;
-  return <img className="thumb" src={src} alt="" loading="lazy" onError={() => setBroken(true)} />;
+  const src = outIsImage ? job.result!.url : job.previewUrl;
+  return <SmartThumb file={job.file} src={src} />;
 }
 
 function FilePdfThumb({ name }: { name: string }) {

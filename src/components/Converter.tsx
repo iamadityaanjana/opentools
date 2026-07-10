@@ -19,6 +19,7 @@ import {
   type FormatCategory,
 } from '../formats/registry';
 import { convertFile, formatBytes, type ConversionResult } from '../lib/convert';
+import { decodeToImageData } from '../lib/decode';
 import { StatusBadge, type JobStatus } from './StatusBadge';
 import { DotsThinking } from './Thinking';
 import { Dropdown } from './Dropdown';
@@ -41,9 +42,49 @@ const GROUPED = ENCODE_TARGETS.reduce<Record<string, typeof ENCODE_TARGETS>>((ac
 let idSeq = 0;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const thumbCache = new WeakMap<File, string>();
+
+async function makeThumbDataUrl(file: File, max = 200): Promise<string> {
+  const cached = thumbCache.get(file);
+  if (cached) return cached;
+  const { imageData } = await decodeToImageData(file);
+  const source = document.createElement('canvas');
+  source.width = imageData.width;
+  source.height = imageData.height;
+  source.getContext('2d')!.putImageData(imageData, 0, 0);
+  const scale = Math.min(1, max / Math.max(imageData.width, imageData.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(imageData.width * scale));
+  canvas.height = Math.max(1, Math.round(imageData.height * scale));
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  const url = canvas.toDataURL('image/png');
+  thumbCache.set(file, url);
+  return url;
+}
+
 function Thumb({ job }: { job: Job }) {
+  const [decoded, setDecoded] = useState<string | null>(null);
   const [broken, setBroken] = useState(false);
-  const src = job.result?.url ?? job.previewUrl;
+  const [attemptDecode, setAttemptDecode] = useState(false);
+  const rawSrc = job.result?.url ?? job.previewUrl;
+
+  useEffect(() => {
+    setDecoded(null);
+    setBroken(false);
+    setAttemptDecode(false);
+  }, [job.file, rawSrc]);
+
+  useEffect(() => {
+    if (!attemptDecode) return;
+    let cancelled = false;
+    makeThumbDataUrl(job.file)
+      .then((url) => { if (!cancelled) setDecoded(url); })
+      .catch(() => { if (!cancelled) setBroken(true); });
+    return () => { cancelled = true; };
+  }, [attemptDecode, job.file]);
+
   if (broken) {
     return (
       <div className="thumb thumb--fallback">
@@ -52,7 +93,15 @@ function Thumb({ job }: { job: Job }) {
       </div>
     );
   }
-  return <img className="thumb" src={src} alt="" loading="lazy" onError={() => setBroken(true)} />;
+  return (
+    <img
+      className="thumb"
+      src={decoded ?? rawSrc}
+      alt=""
+      loading="lazy"
+      onError={() => { if (decoded) setBroken(true); else setAttemptDecode(true); }}
+    />
+  );
 }
 
 export default function Converter() {
