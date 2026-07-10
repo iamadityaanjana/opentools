@@ -4,80 +4,42 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CaretDown, List, X } from '@phosphor-icons/react';
-import {
-  CATEGORY_BY_ID, TOOLS, PRIMARY_NAV_CATEGORIES, OTHER_NAV_CATEGORIES, type Tool,
-} from '../tools/catalog';
+import { TOOL_BY_ID } from '../tools/catalog';
 
-function preload(route?: string) {
-  if (route === '/convert') import('./Converter');
-}
-
-function ToolLink({ t, onNavigate }: { t: Tool; onNavigate?: () => void }) {
-  if (t.status === 'live' && t.route) {
-    return (
-      <li>
-        <Link className="megalink" href={t.route} onMouseEnter={() => preload(t.route)} onClick={onNavigate}>
-          {t.name}
-        </Link>
-      </li>
-    );
-  }
-  return (
-    <li>
-      <span className="megalink megalink--soon">
-        {t.name}
-        <span className="megalink__soon">soon</span>
-      </span>
-    </li>
-  );
-}
-
-function toolsIn(catId: string) {
-  return TOOLS.filter((t) => t.categoryId === catId);
-}
-
-/** Single-category dropdown surfaced directly in the nav. */
-function CategoryMenu({ catId }: { catId: string }) {
-  const cat = CATEGORY_BY_ID.get(catId);
-  if (!cat) return null;
+function ToolMenu({ label, toolIds }: { label: string; toolIds: string[] }) {
+  const tools = toolIds.map((id) => TOOL_BY_ID.get(id)).filter((tool) => tool?.status === 'live' && tool.route);
   return (
     <div className="nav__item">
       <button className="nav__trigger">
-        {cat.label} <CaretDown size={12} weight="bold" />
+        {label} <CaretDown size={12} weight="bold" />
       </button>
       <div className="dropdown" role="menu">
         <ul className="dropdown__list">
-          {toolsIn(catId).map((t) => <ToolLink key={t.id} t={t} />)}
+          {tools.map((tool) => (
+            <li key={tool!.id}>
+              <Link className="megalink" href={tool!.route!}>{tool!.name}</Link>
+            </li>
+          ))}
         </ul>
       </div>
     </div>
   );
 }
 
-/** Mega menu holding the remaining categories, grouped in columns. */
-function OtherMenu({ label, catIds }: { label: string; catIds: string[] }) {
+function OtherMenu() {
   return (
-    <div className="nav__item nav__item--mega">
+    <div className="nav__item">
       <button className="nav__trigger">
-        {label} <CaretDown size={12} weight="bold" />
+        Other tools <CaretDown size={12} weight="bold" />
       </button>
-      <div className="megamenu" role="menu">
-        <div className="megamenu__grid">
-          {catIds.map((catId) => {
-            const cat = CATEGORY_BY_ID.get(catId)!;
-            return (
-              <div key={catId} className="megacol">
-                <div className="megacol__head">
-                  <span className="megacol__emoji">{cat.emoji}</span>
-                  {cat.label}
-                </div>
-                <ul className="megacol__list">
-                  {toolsIn(catId).map((t) => <ToolLink key={t.id} t={t} />)}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+      <div className="dropdown" role="menu">
+        <ul className="dropdown__list">
+          <li><Link className="megalink" href="/image">All image tools</Link></li>
+          <li><Link className="megalink" href="/pdf">All PDF tools</Link></li>
+          <li><Link className="megalink" href="/tools/color-picker">Color Picker</Link></li>
+          <li><Link className="megalink" href="/tools/view-exif-data">View EXIF Data</Link></li>
+          <li><Link className="megalink" href="/guides">Guides</Link></li>
+        </ul>
       </div>
     </div>
   );
@@ -91,32 +53,11 @@ function BookCall() {
   );
 }
 
-/** Collapsible category section used inside the mobile drawer. */
-function MobileCategory({ catId, onNavigate }: { catId: string; onNavigate: () => void }) {
-  const [open, setOpen] = useState(false);
-  const cat = CATEGORY_BY_ID.get(catId);
-  if (!cat) return null;
-  return (
-    <div className={`mnav__cat ${open ? 'is-open' : ''}`}>
-      <button className="mnav__cathead" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-        <span className="mnav__catlabel"><span>{cat.emoji}</span> {cat.label}</span>
-        <CaretDown className="mnav__caret" size={14} weight="bold" />
-      </button>
-      {open && (
-        <ul className="mnav__list">
-          {toolsIn(catId).map((t) => <ToolLink key={t.id} t={t} onNavigate={onNavigate} />)}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 /**
  * Shared top navigation.
  * - `minimal` (landing): logo + Book a call only.
- * - default (tool pages): common image categories by name, a PDF menu,
- *   and an "Other tools" mega menu holding the rest. On small screens the
- *   category menus collapse into a slide-down drawer behind a hamburger.
+ * - default (tool pages): concise directory links. Category navigation lives
+ *   on the searchable image and PDF directory pages.
  */
 export function TopNav({ minimal = false }: { minimal?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -134,7 +75,6 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
   }, [open]);
 
   const close = () => setOpen(false);
-  const allCats = [...PRIMARY_NAV_CATEGORIES, 'pdf', ...OTHER_NAV_CATEGORIES];
 
   return (
     <header className="topbar topbar--nav">
@@ -149,10 +89,11 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
       ) : (
         <>
           <div className="nav nav--desktop">
-            {PRIMARY_NAV_CATEGORIES.map((id) => <CategoryMenu key={id} catId={id} />)}
-            <CategoryMenu catId="pdf" />
-            <OtherMenu label="Other tools" catIds={OTHER_NAV_CATEGORIES} />
-            <Link className="nav__link" href="/guides">Guides</Link>
+            <ToolMenu label="Convert" toolIds={['image-converter']} />
+            <ToolMenu label="Resize & crop" toolIds={['resize-image', 'crop-image', 'rotate-image', 'flip-image', 'change-canvas-size']} />
+            <ToolMenu label="Compress" toolIds={['compress-jpg', 'compress-png', 'compress-webp', 'batch-compress-images']} />
+            <ToolMenu label="PDF tools" toolIds={['merge-pdfs', 'split-pdf', 'compress-pdf', 'pdf-to-jpg', 'images-to-pdf', 'delete-pages', 'rearrange-pages', 'pdf-to-text']} />
+            <OtherMenu />
             <BookCall />
           </div>
 
@@ -176,9 +117,8 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
               <Link className="btn btn--sm" href="/pdf" onClick={close}>PDF tools</Link>
             </div>
             <Link className="mnav__guide" href="/guides" onClick={close}>Guides</Link>
-            <div className="mnav__cats">
-              {allCats.map((id) => <MobileCategory key={id} catId={id} onNavigate={close} />)}
-            </div>
+            <Link className="mnav__guide" href="/about" onClick={close}>About</Link>
+            <Link className="mnav__guide" href="/privacy" onClick={close}>Privacy</Link>
             <div className="mnav__foot">
               <BookCall />
             </div>

@@ -59,7 +59,7 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
     tools: TOOLS.filter((tool) => (
       tool.categoryId === category.id
       && (!normalizedQuery || `${tool.name} ${tool.blurb ?? ''}`.toLowerCase().includes(normalizedQuery))
-    )),
+    )).sort((a, b) => Number(b.status === 'live') - Number(a.status === 'live')),
   })).filter(({ tools }) => tools.length > 0), [categories, normalizedQuery]);
 
   const visibleCount = groups.reduce((count, item) => count + item.tools.length, 0);
@@ -110,22 +110,26 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
 
         {!normalizedQuery && categories.length > 1 && (
           <nav className="catnav" aria-label={`${title} categories`}>
-            {categories.map((category) => (
-              <a
-                className="chip-btn"
-                href={`#category-${category.id}`}
-                key={category.id}
-              >
-                <span className="chip-btn__emoji">{category.emoji}</span>
-                {category.label}
-              </a>
-            ))}
+            {categories.map((category) => {
+              const CategoryIcon = category.icon;
+              return (
+                <a
+                  className="chip-btn"
+                  href={`#category-${category.id}`}
+                  key={category.id}
+                >
+                  <CategoryIcon size={14} weight="bold" />
+                  {category.label}
+                </a>
+              );
+            })}
           </nav>
         )}
 
         {groups.length > 0 ? (
           <div className="tools-groups">
             {groups.map(({ category, tools }) => {
+              const CategoryIcon = category.icon;
               return (
                 <details
                   className="tgroup tgroup--accordion"
@@ -141,7 +145,7 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
                     <span
                       className="tgroup__toggle"
                     >
-                      <span className="tgroup__emoji">{category.emoji}</span>
+                      <CategoryIcon size={18} weight="fill" />
                       <span>{category.label}</span>
                       <span className="tgroup__count">{tools.length}</span>
                       <CaretDown className="tgroup__caret" size={17} weight="bold" />

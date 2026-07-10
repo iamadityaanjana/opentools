@@ -178,3 +178,26 @@ export async function extractPdfImages(file: File): Promise<ExtractedImage[]> {
     await loadingTask.destroy();
   }
 }
+
+/** Extract selectable text in reading order, page by page. Scanned PDFs need OCR. */
+export async function extractPdfText(file: File, range = ''): Promise<string> {
+  const { doc, loadingTask } = await loadDocument(file);
+  try {
+    const indices = parsePageRange(range, doc.numPages);
+    if (!indices.length) throw new Error('No pages selected for that range.');
+    const pages: string[] = [];
+    for (const index of indices) {
+      const page = await doc.getPage(index + 1);
+      const content = await page.getTextContent();
+      const text = content.items.map((item) => {
+        if (!('str' in item)) return '';
+        return `${item.str}${'hasEOL' in item && item.hasEOL ? '\n' : ' '}`;
+      }).join('').replace(/[ \t]+\n/g, '\n').trim();
+      pages.push(`--- Page ${index + 1} ---\n${text}`);
+      page.cleanup();
+    }
+    return pages.join('\n\n');
+  } finally {
+    await loadingTask.destroy();
+  }
+}

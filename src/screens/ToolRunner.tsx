@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   UploadSimple, DownloadSimple, Lightning, Trash, X, ArrowLeft, Copy, Check, ImageBroken, DotsSixVertical,
-  ArrowClockwise, ArrowCounterClockwise, FlipHorizontal, FlipVertical, Warning,
+  ArrowClockwise, ArrowCounterClockwise, FlipHorizontal, FlipVertical, Warning, FilePdf,
 } from '@phosphor-icons/react';
 import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
@@ -26,6 +26,7 @@ import { StatusBadge, type JobStatus } from '../components/StatusBadge';
 import { DotsThinking } from '../components/Thinking';
 import { SiteFooter } from '../components/SiteFooter';
 import { getToolContent } from '../content/tool-content';
+import { PdfPageEditor } from '../components/PdfPageEditor';
 
 interface Job {
   id: string;
@@ -121,6 +122,14 @@ const VERB: Record<string, string> = {
   'canvas-size': 'Apply', text: 'Apply', watermark: 'Apply', passthrough: 'Process', viewExif: 'Read metadata',
   changeDpi: 'Set DPI', base64: 'Generate', datauri: 'Generate', colorPalette: 'Extract', colorCount: 'Count',
   gifToImages: 'Extract', gifResizer: 'Resize', gifOptimizer: 'Optimize', splitImage: 'Split',
+  mergePdf: 'Merge', splitPdf: 'Split', extractPdfPages: 'Extract', deletePdfPages: 'Delete pages',
+  reorderPdfPages: 'Rearrange', rotatePdfPages: 'Rotate', cropPdf: 'Crop',
+  addBlankPdfPages: 'Add pages', addPdfPageNumbers: 'Add numbers', addPdfText: 'Add text',
+  watermarkPdf: 'Add watermark', compressPdf: 'Compress', flattenPdf: 'Flatten',
+  pdfToText: 'Extract text', pdfInfo: 'Read PDF', editPdfMetadata: 'Update metadata',
+  removePdfMetadata: 'Remove metadata', fillPdfForms: 'Fill form', flattenPdfForms: 'Flatten forms',
+  extractPdfFormData: 'Extract data', renamePdf: 'Rename', removeBlankPdfPages: 'Remove blanks',
+  pdfToJpg: 'Convert',
 };
 
 let idSeq = 0;
@@ -287,14 +296,16 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
   const isText = tool?.op === 'text';
   const isWatermark = tool?.op === 'watermark';
   const isPdf = tool?.op === 'imagesToPdf';
+  const isPdfCombine = tool?.op === 'mergePdf';
   const isGif = tool?.op === 'gifToImages';
   // Tools that take a raw GIF file and show a decoded frame strip instead of a live canvas preview.
   const isGifInput = isGif || tool?.op === 'gifResizer' || tool?.op === 'gifOptimizer';
   // Combine tool that produces an animated GIF (export is animated; no cheap live canvas).
   const isGifCombine = tool?.op === 'imagesToGif';
   // Tools that take a raw PDF file (rendered pages / extracted images -> ZIP).
-  const isPdfInput = tool?.op === 'pdfToImages' || tool?.op === 'extractImagesFromPdf';
-  const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op) && !isGifInput;
+  const isPdfInput = op?.input === 'pdf';
+  const isPdfPageVisual = !!tool?.op && ['reorderPdfPages', 'deletePdfPages', 'extractPdfPages', 'rotatePdfPages', 'splitPdf'].includes(tool.op);
+  const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op) && !isGifInput && !isPdfInput && !op?.runFile;
 
   // When switching to a different tool, drop everything from the previous one.
   useEffect(() => {
@@ -643,7 +654,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
 
   const cat = CATEGORY_BY_ID.get(tool.categoryId)!;
   const Icon = cat.icon;
-  const isTextTool = ['base64', 'datauri', 'colorCount'].includes(tool.op!);
+  const isTextTool = ['base64', 'datauri', 'colorCount', 'pdfInfo'].includes(tool.op!);
   const isExif = tool.op === 'viewExif';
   const isSwatchTool = tool.op === 'colorPalette';
   const pendingCount = jobs.filter((j) => j.status === 'pending').length;
@@ -652,9 +663,12 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
   const verb = VERB[tool.op!] ?? 'Convert';
   const useOverlay = (isText || (isWatermark && String(activeParams.style) === 'single')) && !!previewSrc;
 
-  const controlsBlock = op.controls.length > 0 && (
+  const visibleControls = op.controls.filter((control) => (
+    !(isPdfPageVisual && ((tool.op === 'reorderPdfPages' && control.key === 'order') || (['deletePdfPages', 'extractPdfPages', 'rotatePdfPages'].includes(tool.op!) && control.key === 'range')))
+  ));
+  const controlsBlock = visibleControls.length > 0 && (
     <div className="converter__controls converter__controls--stack">
-      {op.controls.map((c) => (
+      {visibleControls.map((c) => (
         <ControlField key={c.key} ctrl={c} value={activeParams[c.key]} onChange={(v) => setParam(c.key, v)} />
       ))}
     </div>
@@ -663,7 +677,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
   const actionsBlock = (
     <div className="controls__actions controls__actions--full">
       <button className="btn btn--dark btn--icon" onClick={handleConvert} disabled={!hasFiles || isWorking || !!dimError || (!isCombine && pendingCount === 0)}>
-        <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? 'Generate' : `${verb}${pendingCount ? ` ${pendingCount}` : ''}`}
+        <Lightning size={16} weight="fill" /> {isWorking ? 'Working…' : isCombine ? (verb === 'Convert' ? 'Generate' : verb) : `${verb}${pendingCount ? ` ${pendingCount}` : ''}`}
       </button>
       {!isCombine && jobs.filter((j) => j.result).length > 1 && (
         <button className="btn btn--icon" onClick={downloadAll} disabled={isWorking}><DownloadSimple size={15} weight="bold" /> All</button>
@@ -689,7 +703,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
         <div className="tool-hero__icon"><Icon size={26} weight="fill" /></div>
         <div>
           <h1 className="tool-title">{tool.name}</h1>
-          <p className="tool-desc">{pageContent?.description ?? tool.blurb ?? `${isCombine ? 'Combine your images' : 'Apply this tool to one or many images'} with local browser processing.`}</p>
+          <p className="tool-desc">{pageContent?.description ?? tool.blurb ?? `${isPdfInput ? 'Process one or more PDFs' : isCombine ? 'Combine your files' : 'Apply this tool to one or many images'} locally in your browser.`}</p>
         </div>
         <Link className="btn btn--pill btn--icon" href={GROUP_HOME[cat.group]}><ArrowLeft size={15} weight="bold" /> {GROUP_LABEL[cat.group]}</Link>
       </div>
@@ -730,14 +744,14 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                   onClick={() => setActiveId(j.id)}
                   title={j.file.name}
                 >
-                  <img src={j.previewUrl} alt="" />
+                  {isPdfInput ? <FilePdfThumb name={j.file.name} /> : <img src={j.previewUrl} alt="" />}
                   <span className="imgselect__x" onClick={(e) => { e.stopPropagation(); removeJob(j.id); }}><X size={11} /></span>
                 </button>
               ))}
             </div>
           )}
 
-          <div className={`editor2__body ${previewable || isGifInput ? 'editor2__body--split' : ''}`}>
+          <div className={`editor2__body ${previewable || isGifInput || isPdfCombine || isPdfPageVisual ? 'editor2__body--split' : ''}`}>
             {/* GIF frame-strip preview */}
             {isGifInput && (
               <div className="editor__preview">
@@ -761,13 +775,23 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                 )}
               </div>
             )}
+            {isPdfPageVisual && activeJob && (
+              <PdfPageEditor
+                file={activeJob.file}
+                op={tool.op!}
+                params={activeParams}
+                setParam={setParam}
+              />
+            )}
             {/* Preview / stage */}
-            {previewable && (
+            {(previewable || isPdfCombine) && (
               <div className="editor__preview">
-                <div className="preview-head">
-                  <span className="preview-head__label">Live preview {previewBusy && <span className="preview-dot" />}</span>
-                  <span className="preview-head__note">reduced-res preview · full quality on convert</span>
-                </div>
+                {!isPdfCombine && (
+                  <div className="preview-head">
+                    <span className="preview-head__label">Live preview {previewBusy && <span className="preview-dot" />}</span>
+                    <span className="preview-head__note">reduced-res preview · full quality on convert</span>
+                  </div>
+                )}
                 {(isRotate || isFlip) && (
                   <div className="preview-tools">
                     {isRotate && (
@@ -798,7 +822,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                       {jobs.map((j, i) => (
                         <div key={j.id} className="reorder__item" draggable onDragStart={() => { reorderFrom.current = i; }} onDrop={() => reorder(i)} title="Drag to reorder">
                           <DotsSixVertical size={14} className="reorder__grip" />
-                          <img className="reorder__thumb" src={j.previewUrl} alt="" />
+                          {isPdfInput ? <FilePdfThumb name={j.file.name} /> : <img className="reorder__thumb" src={j.previewUrl} alt="" />}
                           <span className="reorder__idx">{i + 1}</span>
                           <button className="job__remove" onClick={() => removeJob(j.id)} aria-label="Remove"><X size={12} /></button>
                         </div>
@@ -834,6 +858,8 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                     </div>
                     {isPdf ? (
                       <p className="dropzone__hint">Drag thumbnails to set page order, then Generate the PDF.</p>
+                    ) : isPdfCombine ? (
+                      <p className="dropzone__hint">Drag PDFs to set their merge order, then Generate the combined PDF.</p>
                     ) : isGifCombine ? (
                       <p className="dropzone__hint">Drag thumbnails to set frame order, then Generate. The export is an animated GIF.</p>
                     ) : isZip ? (
@@ -919,6 +945,18 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
 function JobThumb({ job }: { job: Job }) {
   const [broken, setBroken] = useState(false);
   const src = job.result?.url && job.result.filename.match(/\.(png|jpe?g|webp|avif|gif|bmp)$/i) ? job.result.url : job.previewUrl;
+  if (job.file.type === 'application/pdf' || /\.pdf$/i.test(job.file.name)) {
+    return <div className="thumb thumb--fallback"><FilePdf size={20} weight="fill" /></div>;
+  }
   if (broken) return <div className="thumb thumb--fallback"><ImageBroken size={20} /></div>;
   return <img className="thumb" src={src} alt="" loading="lazy" onError={() => setBroken(true)} />;
+}
+
+function FilePdfThumb({ name }: { name: string }) {
+  return (
+    <span className="pdf-file-thumb" title={name}>
+      <FilePdf size={20} weight="fill" />
+      <span>{name}</span>
+    </span>
+  );
 }

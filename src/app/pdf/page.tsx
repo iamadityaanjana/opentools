@@ -5,7 +5,7 @@ import { GuideLinks } from '../../components/GuideLinks';
 
 export const metadata: Metadata = {
   title: 'Free online PDF tools',
-  description: 'Create PDFs, convert PDF pages to images, and extract images from PDFs locally in your browser.',
+  description: 'Merge, split, rotate, crop, compress, convert, organize, inspect, and edit PDFs locally in your browser.',
   alternates: { canonical: '/pdf' },
   openGraph: { url: '/pdf', title: 'Free online PDF tools · opentools' },
 };

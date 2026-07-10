@@ -23,6 +23,8 @@ export interface OpResult {
 
 export interface ImageOp {
   controls: Control[];
+  /** Raw input kind used by the generic uploader. Defaults to images. */
+  input?: 'image' | 'pdf' | 'text';
   /** Default output format id (see encode registry). Omit to keep PNG. */
   outputFormat?: string;
   /** 'each' = per file (default). 'combine' = all files -> single output. */
@@ -339,6 +341,32 @@ export function fontString(style: string, size: number, family: string): string 
   const italic = style === 'italic' || style === 'bolditalic' ? 'italic ' : '';
   const weight = style === 'bold' || style === 'bolditalic' ? 'bold ' : '';
   return `${italic}${weight}${size}px ${family || 'Instrument Sans'}`;
+}
+
+async function rasterizePdf(file: File, p: Params, suffix: string): Promise<OpResult> {
+  const [{ renderPdfPages }, { jsPDF }] = await Promise.all([
+    import('../lib/pdf'),
+    import('jspdf'),
+  ]);
+  const dpi = Math.max(48, Math.min(300, Number(p.dpi) || 120));
+  const quality = Math.max(0.1, Math.min(1, Number(p.quality ?? 75) / 100));
+  const pages = await renderPdfPages(file, { dpi, range: String(p.range ?? '') });
+  if (!pages.length) throw new Error('No pages could be rendered from this PDF.');
+  let output: InstanceType<typeof jsPDF> | null = null;
+  for (const rendered of pages) {
+    const canvas = document.createElement('canvas');
+    canvas.width = rendered.width;
+    canvas.height = rendered.height;
+    canvas.getContext('2d')!.putImageData(rendered.imageData, 0, 0);
+    const widthPt = rendered.width * 72 / dpi;
+    const heightPt = rendered.height * 72 / dpi;
+    const orientation = widthPt >= heightPt ? 'l' : 'p';
+    if (!output) output = new jsPDF({ orientation, unit: 'pt', format: [widthPt, heightPt], compress: true });
+    else output.addPage([widthPt, heightPt], orientation);
+    output.addImage(canvas.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, widthPt, heightPt, undefined, 'FAST');
+  }
+  const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+  return { blob: output!.output('blob'), filename: `${base}-${suffix}.pdf` };
 }
 
 export const OPS: Record<string, ImageOp> = {
@@ -750,6 +778,7 @@ export const OPS: Record<string, ImageOp> = {
   // ---- PDF (special file input: render/extract -> ZIP) ----
   // Render each PDF page to a raster image at a chosen DPI/format.
   pdfToImages: {
+    input: 'pdf',
     controls: [
       { key: 'format', label: 'Page format', type: 'select', def: 'png', options: [
         { value: 'png', label: 'PNG' }, { value: 'jpeg', label: 'JPEG' }, { value: 'webp', label: 'WebP' },
@@ -789,6 +818,7 @@ export const OPS: Record<string, ImageOp> = {
 
   // Pull the embedded raster image XObjects out of a PDF (not page renders).
   extractImagesFromPdf: {
+    input: 'pdf',
     controls: [
       { key: 'format', label: 'Image format', type: 'select', def: 'png', options: [
         { value: 'png', label: 'PNG' }, { value: 'jpeg', label: 'JPEG' }, { value: 'webp', label: 'WebP' },
@@ -816,6 +846,339 @@ export const OPS: Record<string, ImageOp> = {
       }
       return { blob: await zip.generateAsync({ type: 'blob' }), filename: `${base}-images.zip` };
     },
+  },
+
+  // ---- PDF structural editing (lossless page operations powered by pdf-lib) ----
+  mergePdf: {
+    input: 'pdf',
+    mode: 'combine',
+    controls: [],
+    runCombineFiles: async (files) => {
+      const { mergePdfFiles, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      return { blob: bytesToPdfBlob(await mergePdfFiles(files)), filename: 'merged.pdf' };
+    },
+  },
+  splitPdf: {
+    input: 'pdf',
+    controls: [
+      { key: 'mode', label: 'Split into', type: 'select', def: 'pages', options: [
+        { value: 'pages', label: 'One PDF per page' },
+        { value: 'chunks', label: 'Equal page chunks' },
+      ] },
+      { key: 'chunkSize', label: 'Pages per chunk', type: 'number', min: 1, max: 1000, def: 2 },
+    ],
+    runFile: async (file, p) => {
+      const [{ splitPdfPages, bytesToPdfBlob }, JSZip] = await Promise.all([
+        import('../lib/pdfEdit'),
+        import('jszip').then((module) => module.default),
+      ]);
+      const outputs = await splitPdfPages(file, String(p.mode), Number(p.chunkSize));
+      if (outputs.length === 1) {
+        return { blob: bytesToPdfBlob(outputs[0].bytes), filename: outputs[0].filename };
+      }
+      const zip = new JSZip();
+      outputs.forEach((output) => zip.file(output.filename, output.bytes));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: await zip.generateAsync({ type: 'blob' }), filename: `${base}-split.zip` };
+    },
+  },
+  extractPdfPages: {
+    input: 'pdf',
+    controls: [{ key: 'range', label: 'Pages to extract', type: 'text', def: '1', placeholder: 'e.g. 1-3, 5' }],
+    runFile: async (file, p) => {
+      const { extractPdfPages, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await extractPdfPages(file, String(p.range));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-extracted.pdf` };
+    },
+  },
+  deletePdfPages: {
+    input: 'pdf',
+    controls: [{ key: 'range', label: 'Pages to delete', type: 'text', def: '1', placeholder: 'e.g. 2, 4-6' }],
+    runFile: async (file, p) => {
+      const { deletePdfPages, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await deletePdfPages(file, String(p.range));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-pages-removed.pdf` };
+    },
+  },
+  reorderPdfPages: {
+    input: 'pdf',
+    controls: [{ key: 'order', label: 'New page order', type: 'text', def: '1', placeholder: 'e.g. 3,1,2' }],
+    runFile: async (file, p) => {
+      const { reorderPdfPages, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await reorderPdfPages(file, String(p.order));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-reordered.pdf` };
+    },
+  },
+  rotatePdfPages: {
+    input: 'pdf',
+    controls: [
+      { key: 'range', label: 'Pages (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' },
+      { key: 'angle', label: 'Rotation', type: 'select', def: '90', options: [
+        { value: '90', label: '90° clockwise' },
+        { value: '180', label: '180°' },
+        { value: '270', label: '90° counter-clockwise' },
+      ] },
+    ],
+    runFile: async (file, p) => {
+      const { rotatePdfPages, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await rotatePdfPages(file, String(p.range), Number(p.angle));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-rotated.pdf` };
+    },
+  },
+  cropPdf: {
+    input: 'pdf',
+    controls: [
+      { key: 'range', label: 'Pages (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' },
+      { key: 'top', label: 'Top margin (pt)', type: 'number', min: 0, def: 0 },
+      { key: 'right', label: 'Right margin (pt)', type: 'number', min: 0, def: 0 },
+      { key: 'bottom', label: 'Bottom margin (pt)', type: 'number', min: 0, def: 0 },
+      { key: 'left', label: 'Left margin (pt)', type: 'number', min: 0, def: 0 },
+    ],
+    runFile: async (file, p) => {
+      const { cropPdfPages, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await cropPdfPages(file, String(p.range), {
+        top: Number(p.top), right: Number(p.right), bottom: Number(p.bottom), left: Number(p.left),
+      });
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-cropped.pdf` };
+    },
+  },
+  addBlankPdfPages: {
+    input: 'pdf',
+    controls: [
+      { key: 'count', label: 'Blank pages', type: 'number', min: 1, max: 100, def: 1 },
+      { key: 'position', label: 'Position', type: 'select', def: 'end', options: [
+        { value: 'start', label: 'Beginning' }, { value: 'end', label: 'End' },
+      ] },
+      { key: 'size', label: 'Page size', type: 'select', def: 'a4', options: [
+        { value: 'a4', label: 'A4 portrait' },
+        { value: 'a4-landscape', label: 'A4 landscape' },
+        { value: 'letter', label: 'US Letter portrait' },
+        { value: 'letter-landscape', label: 'US Letter landscape' },
+      ] },
+    ],
+    runFile: async (file, p) => {
+      const { addBlankPdfPages, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await addBlankPdfPages(file, Number(p.count), String(p.position), String(p.size));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-with-blank-pages.pdf` };
+    },
+  },
+  addPdfPageNumbers: {
+    input: 'pdf',
+    controls: [
+      { key: 'range', label: 'Pages (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' },
+      { key: 'position', label: 'Position', type: 'select', def: 'bottom-center', options: [
+        { value: 'bottom-left', label: 'Bottom left' },
+        { value: 'bottom-center', label: 'Bottom center' },
+        { value: 'bottom-right', label: 'Bottom right' },
+        { value: 'top-left', label: 'Top left' },
+        { value: 'top-center', label: 'Top center' },
+        { value: 'top-right', label: 'Top right' },
+      ] },
+      { key: 'start', label: 'Start number', type: 'number', min: 0, def: 1 },
+      { key: 'fontSize', label: 'Font size', type: 'range', min: 6, max: 72, step: 1, def: 12, suffix: ' pt' },
+      { key: 'color', label: 'Color', type: 'color', def: '#000000' },
+    ],
+    runFile: async (file, p) => {
+      const { addPdfPageNumbers, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await addPdfPageNumbers(
+        file, String(p.range), String(p.position), Number(p.start), Number(p.fontSize), String(p.color),
+      );
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-numbered.pdf` };
+    },
+  },
+  addPdfText: {
+    input: 'pdf',
+    controls: [
+      { key: 'text', label: 'Text', type: 'text', def: 'Sample text' },
+      { key: 'range', label: 'Pages (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' },
+      { key: 'position', label: 'Position', type: 'select', def: 'top-center', options: [
+        { value: 'top-left', label: 'Top left' }, { value: 'top-center', label: 'Top center' },
+        { value: 'top-right', label: 'Top right' }, { value: 'bottom-left', label: 'Bottom left' },
+        { value: 'bottom-center', label: 'Bottom center' }, { value: 'bottom-right', label: 'Bottom right' },
+      ] },
+      { key: 'fontSize', label: 'Font size', type: 'range', min: 6, max: 144, step: 1, def: 24, suffix: ' pt' },
+      { key: 'color', label: 'Color', type: 'color', def: '#000000' },
+    ],
+    runFile: async (file, p) => {
+      const { stampPdfText, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await stampPdfText(
+        file, String(p.range), String(p.text), String(p.position), Number(p.fontSize), String(p.color), 1, 0,
+      );
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-with-text.pdf` };
+    },
+  },
+  watermarkPdf: {
+    input: 'pdf',
+    controls: [
+      { key: 'text', label: 'Watermark text', type: 'text', def: 'CONFIDENTIAL' },
+      { key: 'range', label: 'Pages (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' },
+      { key: 'fontSize', label: 'Font size', type: 'range', min: 12, max: 144, step: 2, def: 52, suffix: ' pt' },
+      { key: 'color', label: 'Color', type: 'color', def: '#777777' },
+      { key: 'opacity', label: 'Opacity', type: 'range', min: 5, max: 100, step: 5, def: 25, suffix: '%' },
+      { key: 'rotation', label: 'Rotation', type: 'select', def: '45', options: [
+        { value: '0', label: 'Horizontal' }, { value: '45', label: '45°' }, { value: '-45', label: '-45°' },
+      ] },
+    ],
+    runFile: async (file, p) => {
+      const { stampPdfText, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await stampPdfText(
+        file, String(p.range), String(p.text), 'bottom-center', Number(p.fontSize), String(p.color),
+        Number(p.opacity) / 100, Number(p.rotation),
+      );
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-watermarked.pdf` };
+    },
+  },
+  compressPdf: {
+    input: 'pdf',
+    controls: [
+      { key: 'dpi', label: 'Raster resolution', type: 'range', min: 48, max: 200, step: 6, def: 108, suffix: ' DPI' },
+      { key: 'quality', label: 'JPEG quality', type: 'range', min: 20, max: 95, step: 5, def: 70, suffix: '%' },
+      { key: 'range', label: 'Pages (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' },
+    ],
+    runFile: (file, p) => rasterizePdf(file, p, 'compressed'),
+  },
+  flattenPdf: {
+    input: 'pdf',
+    controls: [
+      { key: 'dpi', label: 'Raster resolution', type: 'range', min: 72, max: 240, step: 6, def: 150, suffix: ' DPI' },
+      { key: 'quality', label: 'JPEG quality', type: 'range', min: 50, max: 100, step: 5, def: 90, suffix: '%' },
+    ],
+    runFile: (file, p) => rasterizePdf(file, p, 'flattened'),
+  },
+  pdfToText: {
+    input: 'pdf',
+    controls: [{ key: 'range', label: 'Pages (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' }],
+    runFile: async (file, p) => {
+      const { extractPdfText } = await import('../lib/pdf');
+      const text = await extractPdfText(file, String(p.range));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: new Blob([text], { type: 'text/plain;charset=utf-8' }), filename: `${base}.txt` };
+    },
+  },
+  pdfInfo: {
+    input: 'pdf',
+    controls: [],
+    runFile: async (file) => {
+      const { viewPdfMetadata } = await import('../lib/pdfEdit');
+      return { text: await viewPdfMetadata(file) };
+    },
+  },
+  editPdfMetadata: {
+    input: 'pdf',
+    controls: [
+      { key: 'title', label: 'Title', type: 'text', def: '' },
+      { key: 'author', label: 'Author', type: 'text', def: '' },
+      { key: 'subject', label: 'Subject', type: 'text', def: '' },
+      { key: 'keywords', label: 'Keywords (comma-separated)', type: 'text', def: '' },
+    ],
+    runFile: async (file, p) => {
+      const { editPdfMetadata, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await editPdfMetadata(file, {
+        title: String(p.title), author: String(p.author), subject: String(p.subject), keywords: String(p.keywords),
+      });
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-metadata.pdf` };
+    },
+  },
+  removePdfMetadata: {
+    input: 'pdf',
+    controls: [],
+    runFile: async (file) => {
+      const { removePdfMetadata, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await removePdfMetadata(file);
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-metadata-removed.pdf` };
+    },
+  },
+  fillPdfForms: {
+    input: 'pdf',
+    controls: [{
+      key: 'values',
+      label: 'Field values (JSON)',
+      type: 'text',
+      def: '{"Full Name":"Ada Lovelace"}',
+      placeholder: '{"Field name":"Value"}',
+    }],
+    runFile: async (file, p) => {
+      const { fillPdfForm, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await fillPdfForm(file, String(p.values));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-filled.pdf` };
+    },
+  },
+  flattenPdfForms: {
+    input: 'pdf',
+    controls: [],
+    runFile: async (file) => {
+      const { flattenPdfForms, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await flattenPdfForms(file);
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-forms-flattened.pdf` };
+    },
+  },
+  extractPdfFormData: {
+    input: 'pdf',
+    controls: [],
+    runFile: async (file) => {
+      const { extractPdfFormData } = await import('../lib/pdfEdit');
+      const text = await extractPdfFormData(file);
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: new Blob([text], { type: 'application/json' }), filename: `${base}-form-data.json` };
+    },
+  },
+  renamePdf: {
+    input: 'pdf',
+    controls: [{ key: 'name', label: 'Output pattern', type: 'text', def: '{name}-renamed', placeholder: '{name}-renamed' }],
+    runFile: async (file, p) => {
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      const resolved = String(p.name).replaceAll('{name}', base);
+      const safe = resolved.trim().replace(/[^a-z0-9._-]+/gi, '-') || `${base}-renamed`;
+      return { blob: new Blob([await file.arrayBuffer()], { type: 'application/pdf' }), filename: `${safe.replace(/\.pdf$/i, '')}.pdf` };
+    },
+  },
+  removeBlankPdfPages: {
+    input: 'pdf',
+    controls: [
+      { key: 'threshold', label: 'Maximum ink on a blank page', type: 'range', min: 0, max: 5, step: 0.1, def: 0.2, suffix: '%' },
+    ],
+    runFile: async (file, p) => {
+      const [{ renderPdfPages }, { extractPdfPageIndices, bytesToPdfBlob }] = await Promise.all([
+        import('../lib/pdf'),
+        import('../lib/pdfEdit'),
+      ]);
+      const pages = await renderPdfPages(file, { dpi: 30, range: '' });
+      const limit = Number(p.threshold) / 100;
+      const kept = pages.filter((page) => {
+        const data = page.imageData.data;
+        let ink = 0;
+        for (let index = 0; index < data.length; index += 4) {
+          if (data[index] < 245 || data[index + 1] < 245 || data[index + 2] < 245) ink++;
+        }
+        return ink / (data.length / 4) > limit;
+      }).map((page) => page.index);
+      if (!kept.length) throw new Error('Every page matched the blank-page threshold. Lower the threshold and try again.');
+      const bytes = await extractPdfPageIndices(file, kept);
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-blank-pages-removed.pdf` };
+    },
+  },
+  pdfToJpg: {
+    input: 'pdf',
+    controls: [
+      { key: 'quality', label: 'JPEG quality', type: 'range', min: 10, max: 100, step: 5, def: 90, suffix: '%' },
+      { key: 'dpi', label: 'Resolution', type: 'range', min: 72, max: 300, step: 6, def: 150, suffix: ' DPI' },
+      { key: 'range', label: 'Page range (blank = all)', type: 'text', def: '', placeholder: 'e.g. 1-3, 5' },
+    ],
+    runFile: async (file, p) => OPS.pdfToImages.runFile!(file, { ...p, format: 'jpeg' }),
   },
 
   // ---- GIF (special file input: decode all frames -> ZIP) ----
