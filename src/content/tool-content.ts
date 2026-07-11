@@ -10,6 +10,8 @@ export interface ToolContentFaq {
 
 export interface ToolContent {
   readonly title: string;
+  /** Optional override for the HTML <title> tag. Falls back to toolTitle(). */
+  readonly seoTitle?: string;
   readonly description: string;
   readonly intro: readonly string[];
   readonly steps: readonly ToolContentStep[];

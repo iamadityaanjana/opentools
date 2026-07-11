@@ -16,10 +16,13 @@ const SITE_URL = 'https://www.opentools.fun';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'opentools — private browser-based image and PDF tools',
-    template: '%s · opentools',
+    // Each page sets its own optimised title. This fallback covers any page
+    // that doesn't — the template is intentionally not used so tool pages can
+    // build the full string themselves (e.g. "Compress PDF Free Online | opentools").
+    default: 'opentools — Free Image & PDF Tools, No Upload',
+    template: '%s',
   },
-  description: 'Free image and PDF tools that process your files locally in the browser. No account required and no file uploads to opentools.',
+  description: 'Free image and PDF tools that run entirely in your browser. No file uploads, no account, no watermark — always free.',
   applicationName: 'opentools',
   manifest: '/manifest.webmanifest',
   robots: {

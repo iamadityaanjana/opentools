@@ -9,13 +9,14 @@ export function ToolSeoContent({ toolId }: { toolId: string }) {
 
   const related = content.relatedToolIds
     .map((id) => TOOL_BY_ID.get(id))
-    .filter((tool) => tool?.status === 'live' && tool.route);
+    .filter((tool) => tool?.status === 'live' && tool.route)
+    .slice(0, 6);
 
   return (
     <section className="tool-seo" aria-labelledby="tool-guide-title">
       <div className="article-prose">
         <p className="content-kicker">Reviewed {content.reviewedAt}</p>
-        <h2 id="tool-guide-title">About {content.title}</h2>
+        <h2 id="tool-guide-title">Free {content.title} – how it works</h2>
         {content.intro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
 
         {content.supportedFormats?.length ? (
@@ -25,20 +26,20 @@ export function ToolSeoContent({ toolId }: { toolId: string }) {
           </>
         ) : null}
 
-        <h2>How to use it</h2>
+        <h2>How to use {content.title} online</h2>
         <ol>
           {content.steps.map((step) => (
             <li key={step.title}><strong>{step.title}.</strong> {step.description}</li>
           ))}
         </ol>
 
-        <h2>Useful for</h2>
+        <h2>When to use it</h2>
         <ul>{content.useCases.map((useCase) => <li key={useCase}>{useCase}</li>)}</ul>
 
-        <h2>Limitations</h2>
+        <h2>Known limitations</h2>
         <ul>{content.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
 
-        <h2>Questions and answers</h2>
+        <h2>Frequently asked questions</h2>
         <div className="faq-list">
           {content.faqs.map((faq) => (
             <details className="faq-item" key={faq.question}>
@@ -50,7 +51,7 @@ export function ToolSeoContent({ toolId }: { toolId: string }) {
 
         {related.length ? (
           <>
-            <h2>Related tools</h2>
+            <h2>Related free tools</h2>
             <div className="related-links">
               {related.map((tool) => (
                 <Link className="btn btn--sm" href={tool!.route!} key={tool!.id}>{tool!.name}</Link>
