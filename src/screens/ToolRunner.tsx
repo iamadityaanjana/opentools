@@ -27,6 +27,8 @@ import { DotsThinking } from '../components/Thinking';
 import { SiteFooter } from '../components/SiteFooter';
 import { getToolContent } from '../content/tool-content';
 import { PdfPageEditor } from '../components/PdfPageEditor';
+import { RedactEditor } from '../components/RedactEditor';
+import type { RedactBox } from '../lib/pdfSecurity';
 import { ToolEditorial } from '../components/ToolEditorial';
 
 interface Job {
@@ -127,6 +129,7 @@ const VERB: Record<string, string> = {
   reorderPdfPages: 'Rearrange', rotatePdfPages: 'Rotate', cropPdf: 'Crop',
   addBlankPdfPages: 'Add pages', addPdfPageNumbers: 'Add numbers', addPdfText: 'Add text',
   watermarkPdf: 'Add watermark', compressPdf: 'Compress', flattenPdf: 'Flatten',
+  protectPdf: 'Protect', unlockPdf: 'Unlock', redactPdf: 'Redact',
   pdfToText: 'Extract text', pdfInfo: 'Read PDF', editPdfMetadata: 'Update metadata',
   removePdfMetadata: 'Remove metadata', fillPdfForms: 'Fill form', flattenPdfForms: 'Flatten forms',
   extractPdfFormData: 'Extract data', renamePdf: 'Rename', removeBlankPdfPages: 'Remove blanks',
@@ -135,6 +138,16 @@ const VERB: Record<string, string> = {
 
 let idSeq = 0;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function parseRedactBoxes(value: unknown): RedactBox[] {
+  if (typeof value !== 'string' || !value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? (parsed as RedactBox[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 async function fileToCanvas(file: File): Promise<HTMLCanvasElement> {
   const { imageData } = await decodeToImageData(file);
@@ -180,6 +193,14 @@ function ControlField({ ctrl, value, onChange }: { ctrl: Control; value: unknown
       <label className="field">
         <span className="field__label">{ctrl.label}</span>
         <input className="color-input" type="color" value={String(value)} onChange={(e) => onChange(e.target.value)} />
+      </label>
+    );
+  }
+  if (ctrl.type === 'password') {
+    return (
+      <label className="field field--grow">
+        <span className="field__label">{ctrl.label}</span>
+        <input className="select" type="password" autoComplete="new-password" value={String(value)} placeholder={ctrl.placeholder} onChange={(e) => onChange(e.target.value)} />
       </label>
     );
   }
@@ -306,6 +327,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
   // Tools that take a raw PDF file (rendered pages / extracted images -> ZIP).
   const isPdfInput = op?.input === 'pdf';
   const isPdfPageVisual = !!tool?.op && ['reorderPdfPages', 'deletePdfPages', 'extractPdfPages', 'rotatePdfPages', 'splitPdf'].includes(tool.op);
+  const isPdfRedact = tool?.op === 'redactPdf';
   const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op) && !isGifInput && !isPdfInput && !op?.runFile;
 
   // When switching to a different tool, drop everything from the previous one.
@@ -666,6 +688,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
 
   const visibleControls = op.controls.filter((control) => (
     !(isPdfPageVisual && ((tool.op === 'reorderPdfPages' && control.key === 'order') || (['deletePdfPages', 'extractPdfPages', 'rotatePdfPages'].includes(tool.op!) && control.key === 'range')))
+    && !(isPdfRedact && control.key === 'boxes')
   ));
   const controlsBlock = visibleControls.length > 0 && (
     <div className="converter__controls converter__controls--stack">
@@ -753,7 +776,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
             </div>
           )}
 
-          <div className={`editor2__body ${previewable || isGifInput || isPdfCombine || isPdfPageVisual ? 'editor2__body--split' : ''}`}>
+          <div className={`editor2__body ${previewable || isGifInput || isPdfCombine || isPdfPageVisual || isPdfRedact ? 'editor2__body--split' : ''}`}>
             {/* GIF frame-strip preview */}
             {isGifInput && (
               <div className="editor__preview">
@@ -783,6 +806,13 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                 op={tool.op!}
                 params={activeParams}
                 setParam={setParam}
+              />
+            )}
+            {isPdfRedact && activeJob && (
+              <RedactEditor
+                file={activeJob.file}
+                boxes={parseRedactBoxes(activeParams.boxes)}
+                setBoxes={(next) => setParam('boxes', JSON.stringify(next))}
               />
             )}
             {/* Preview / stage */}

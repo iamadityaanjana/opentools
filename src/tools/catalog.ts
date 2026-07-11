@@ -158,7 +158,6 @@ const SEED: Record<string, ToolSeed[]> = {
     ['Unlock PDF'],
     ['Remove PDF Password'],
     ['Add Watermark to PDF'],
-    ['Remove Watermark from PDF'],
     ['Add Digital Signature'],
     ['Verify PDF Signature'],
     ['Redact PDF'],
@@ -329,6 +328,11 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'reduce-pdf-size': { op: 'compressPdf' },
   'optimize-pdf-for-web': { op: 'compressPdf' },
   'flatten-pdf': { op: 'flattenPdf' },
+  // Security
+  'protect-pdf-with-password': { op: 'protectPdf' },
+  'unlock-pdf': { op: 'unlockPdf' },
+  'remove-pdf-password': { op: 'unlockPdf' },
+  'redact-pdf': { op: 'redactPdf' },
   'add-watermark-to-pdf': { op: 'watermarkPdf' },
   'add-text-to-pdf': { op: 'addPdfText' },
   'fill-pdf-forms': { op: 'fillPdfForms' },
@@ -417,11 +421,15 @@ const PDF_LIVE_BLURBS: Record<string, string> = {
   'fill-pdf-forms': 'Fill basic AcroForm fields from a JSON field-value map.',
   'extract-images-from-pdf': 'Extract embedded raster images without rendering whole pages.',
   'remove-blank-pages': 'Detect nearly blank pages with an adjustable visual threshold.',
+  'protect-pdf-with-password': 'Encrypt a PDF with 256-bit AES password protection, entirely in your browser.',
+  'unlock-pdf': 'Remove password protection from a PDF you can open — losslessly, with no upload.',
+  'remove-pdf-password': 'Strip the password from an encrypted PDF while keeping selectable text and structure.',
+  'redact-pdf': 'Draw boxes over sensitive content; redacted pixels are permanently removed from the exported PDF.',
 };
 
 const PDF_SOON_REASON: Record<string, string> = {
   'pdf-convert': 'Upcoming: high-fidelity Office, HTML, or EPUB conversion needs an additional local conversion engine.',
-  'pdf-security': 'Upcoming: password encryption, certificate signatures, and true redaction need audited security tooling.',
+  'pdf-security': 'Upcoming: certificate-based digital signatures and reliable watermark removal need audited PKI and content-stream tooling.',
   'pdf-annotations': 'Upcoming: this needs a coordinate-aware page editor and annotation round-trip support.',
   'pdf-forms': 'Upcoming: creating robust AcroForms needs a dedicated visual form designer.',
   'pdf-text': 'Upcoming: OCR requires a large language model download and careful searchable-text alignment.',

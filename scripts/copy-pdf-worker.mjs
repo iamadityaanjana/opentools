@@ -3,12 +3,20 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const source = resolve(root, 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs');
-const destination = resolve(root, 'public/pdf.worker.min.mjs');
 
-await mkdir(dirname(destination), { recursive: true });
-await copyFile(source, destination);
-console.log('Prepared public/pdf.worker.min.mjs');
+// Static assets that must live under /public so the browser can fetch them at a
+// stable URL: the pdf.js worker and the qpdf WebAssembly binary.
+const assets = [
+  ['node_modules/pdfjs-dist/build/pdf.worker.min.mjs', 'public/pdf.worker.min.mjs'],
+  ['node_modules/@neslinesli93/qpdf-wasm/dist/qpdf.wasm', 'public/qpdf.wasm'],
+];
+
+for (const [from, to] of assets) {
+  const destination = resolve(root, to);
+  await mkdir(dirname(destination), { recursive: true });
+  await copyFile(resolve(root, from), destination);
+  console.log(`Prepared ${to}`);
+}
 
 const indexNowKey = process.env.INDEXNOW_KEY;
 if (indexNowKey && indexNowKey !== 'replace_with_your_indexnow_key') {

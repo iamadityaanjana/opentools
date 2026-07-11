@@ -8,6 +8,7 @@ export type Control =
   | { key: string; label: string; type: 'select'; options: { value: string; label: string }[]; def: string }
   | { key: string; label: string; type: 'color'; def: string }
   | { key: string; label: string; type: 'text'; def: string; placeholder?: string }
+  | { key: string; label: string; type: 'password'; def: string; placeholder?: string }
   | { key: string; label: string; type: 'checkbox'; def: boolean };
 
 export type Params = Record<string, string | number | boolean>;
@@ -1035,6 +1036,55 @@ export const OPS: Record<string, ImageOp> = {
       );
       const base = file.name.replace(/\.[^.]+$/, '') || 'document';
       return { blob: bytesToPdfBlob(bytes), filename: `${base}-watermarked.pdf` };
+    },
+  },
+  // ---- PDF security (qpdf-powered encryption; local raster redaction) ----
+  protectPdf: {
+    input: 'pdf',
+    controls: [
+      { key: 'password', label: 'Password (required to open)', type: 'password', def: '', placeholder: 'Choose a strong password' },
+      { key: 'ownerPassword', label: 'Owner password (optional)', type: 'password', def: '', placeholder: 'Controls printing/editing' },
+    ],
+    runFile: async (file, p) => {
+      const { protectPdf } = await import('../lib/pdfSecurity');
+      const { bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await protectPdf(file, String(p.password ?? ''), String(p.ownerPassword ?? ''));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-protected.pdf` };
+    },
+  },
+  unlockPdf: {
+    input: 'pdf',
+    controls: [
+      { key: 'password', label: 'Current password', type: 'password', def: '', placeholder: 'Enter the PDF password' },
+    ],
+    runFile: async (file, p) => {
+      const { decryptPdf } = await import('../lib/pdfSecurity');
+      const { bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await decryptPdf(file, String(p.password ?? ''));
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob: bytesToPdfBlob(bytes), filename: `${base}-unlocked.pdf` };
+    },
+  },
+  redactPdf: {
+    input: 'pdf',
+    controls: [
+      { key: 'boxes', label: 'boxes', type: 'text', def: '[]' },
+      { key: 'dpi', label: 'Output resolution', type: 'range', min: 96, max: 300, step: 6, def: 150, suffix: ' DPI' },
+      { key: 'quality', label: 'JPEG quality', type: 'range', min: 50, max: 100, step: 5, def: 90, suffix: '%' },
+    ],
+    runFile: async (file, p) => {
+      const { redactPdf } = await import('../lib/pdfSecurity');
+      type RedactBox = import('../lib/pdfSecurity').RedactBox;
+      let boxes: RedactBox[] = [];
+      try {
+        const parsed = JSON.parse(String(p.boxes ?? '[]'));
+        if (Array.isArray(parsed)) boxes = parsed as RedactBox[];
+      } catch { /* no boxes drawn */ }
+      if (!boxes.length) throw new Error('Draw at least one box over the content you want to redact.');
+      const blob = await redactPdf(file, boxes, Number(p.dpi) || 150, (Number(p.quality) || 90) / 100);
+      const base = file.name.replace(/\.[^.]+$/, '') || 'document';
+      return { blob, filename: `${base}-redacted.pdf` };
     },
   },
   compressPdf: {
