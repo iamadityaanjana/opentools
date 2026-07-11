@@ -250,6 +250,50 @@ export async function stampPdfText(
   return document.save();
 }
 
+/**
+ * Stamp a watermark centered on each page. The text is positioned so its
+ * visual center sits at the page center *after* rotation, so large font sizes
+ * stay on the page instead of swinging off one edge (pdf-lib rotates around the
+ * draw origin, not the text center).
+ */
+export async function watermarkPdfText(
+  file: File,
+  range: string,
+  text: string,
+  fontSize: number,
+  color: string,
+  opacity: number,
+  rotation: number,
+): Promise<Uint8Array> {
+  if (!text.trim()) throw new Error('Enter watermark text.');
+  const document = await load(file);
+  const font = await document.embedFont(StandardFonts.Helvetica);
+  const selected = parsePageSelection(range, document.getPageCount());
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  for (const pageIndex of selected) {
+    const page = document.getPage(pageIndex);
+    const { width, height } = page.getSize();
+    const textWidth = font.widthOfTextAtSize(text, fontSize);
+    const textHeight = font.heightAtSize(fontSize);
+    // Move from the page center back along the text baseline (u) and its
+    // perpendicular (v) by half the text box to land on the draw origin.
+    const x = width / 2 - (textWidth / 2) * cos + (textHeight / 2) * sin;
+    const y = height / 2 - (textWidth / 2) * sin - (textHeight / 2) * cos;
+    page.drawText(text, {
+      x,
+      y,
+      size: fontSize,
+      font,
+      color: hexColor(color),
+      opacity: Math.max(0.05, Math.min(1, opacity)),
+      rotate: degrees(rotation),
+    });
+  }
+  return document.save();
+}
+
 export async function viewPdfMetadata(file: File): Promise<string> {
   const document = await load(file);
   const first = document.getPageCount() ? document.getPage(0).getSize() : null;

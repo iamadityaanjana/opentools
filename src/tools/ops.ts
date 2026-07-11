@@ -1029,9 +1029,9 @@ export const OPS: Record<string, ImageOp> = {
       ] },
     ],
     runFile: async (file, p) => {
-      const { stampPdfText, bytesToPdfBlob } = await import('../lib/pdfEdit');
-      const bytes = await stampPdfText(
-        file, String(p.range), String(p.text), 'bottom-center', Number(p.fontSize), String(p.color),
+      const { watermarkPdfText, bytesToPdfBlob } = await import('../lib/pdfEdit');
+      const bytes = await watermarkPdfText(
+        file, String(p.range), String(p.text), Number(p.fontSize), String(p.color),
         Number(p.opacity) / 100, Number(p.rotation),
       );
       const base = file.name.replace(/\.[^.]+$/, '') || 'document';

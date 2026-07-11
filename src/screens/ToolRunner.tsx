@@ -28,6 +28,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { getToolContent } from '../content/tool-content';
 import { PdfPageEditor } from '../components/PdfPageEditor';
 import { RedactEditor } from '../components/RedactEditor';
+import { PdfWatermarkPreview } from '../components/PdfWatermarkPreview';
 import type { RedactBox } from '../lib/pdfSecurity';
 import { ToolEditorial } from '../components/ToolEditorial';
 
@@ -328,6 +329,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
   const isPdfInput = op?.input === 'pdf';
   const isPdfPageVisual = !!tool?.op && ['reorderPdfPages', 'deletePdfPages', 'extractPdfPages', 'rotatePdfPages', 'splitPdf'].includes(tool.op);
   const isPdfRedact = tool?.op === 'redactPdf';
+  const isPdfWatermark = tool?.op === 'watermarkPdf';
   const previewable = !!tool?.op && !NO_PREVIEW.has(tool.op) && !isGifInput && !isPdfInput && !op?.runFile;
 
   // When switching to a different tool, drop everything from the previous one.
@@ -776,7 +778,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
             </div>
           )}
 
-          <div className={`editor2__body ${previewable || isGifInput || isPdfCombine || isPdfPageVisual || isPdfRedact ? 'editor2__body--split' : ''}`}>
+          <div className={`editor2__body ${previewable || isGifInput || isPdfCombine || isPdfPageVisual || isPdfRedact || isPdfWatermark ? 'editor2__body--split' : ''}`}>
             {/* GIF frame-strip preview */}
             {isGifInput && (
               <div className="editor__preview">
@@ -814,6 +816,9 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
                 boxes={parseRedactBoxes(activeParams.boxes)}
                 setBoxes={(next) => setParam('boxes', JSON.stringify(next))}
               />
+            )}
+            {isPdfWatermark && activeJob && (
+              <PdfWatermarkPreview file={activeJob.file} params={activeParams} />
             )}
             {/* Preview / stage */}
             {(previewable || isPdfCombine) && (
