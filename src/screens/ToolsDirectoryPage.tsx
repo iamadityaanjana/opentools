@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import {
@@ -68,6 +68,24 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
   const title = GROUP_LABEL[group];
   const isImage = group === 'image';
   const HeroIcon = isImage ? ImageSquare : FilePdf;
+
+  // Deep-link support: a hash like #category-pdf-security (e.g. from a tool
+  // breadcrumb or the category chips) opens that collapsed section and scrolls
+  // to it. Runs on mount and whenever the hash changes.
+  useEffect(() => {
+    const openFromHash = () => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (el instanceof HTMLDetailsElement) {
+        el.open = true;
+        requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      }
+    };
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    return () => window.removeEventListener('hashchange', openFromHash);
+  }, [groups]);
 
   const handleSearch = useCallback((value: string) => {
     setQuery(value);

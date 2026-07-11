@@ -721,7 +721,7 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
       <nav className="crumbs crumbs--sub">
         <Link className="crumbs__link" href={GROUP_HOME[cat.group]}>{GROUP_LABEL[cat.group]}</Link>
         <span className="crumbs__sep">/</span>
-        <span className="crumbs__link">{cat.label}</span>
+        <Link className="crumbs__link" href={`${GROUP_HOME[cat.group]}#category-${tool.categoryId}`}>{cat.label}</Link>
         <span className="crumbs__sep">/</span>
         <span className="crumbs__current">{tool.name}</span>
       </nav>

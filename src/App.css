@@ -2478,6 +2478,19 @@ a.megalink:hover {
   flex-wrap: wrap;
   gap: 8px;
 }
+/* These are buttons, not prose links — override the article anchor styling
+   (blue + underline) so each button keeps its own legible label color. */
+.related-links a.btn,
+.related-links a.btn:hover,
+.related-links a.btn:visited {
+  color: var(--ink);
+  text-decoration: none;
+}
+.related-links a.btn--dark,
+.related-links a.btn--dark:hover,
+.related-links a.btn--dark:visited {
+  color: #fff;
+}
 .guide-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
