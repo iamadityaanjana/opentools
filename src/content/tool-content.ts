@@ -805,6 +805,758 @@ export const TOOL_CONTENT = {
     reviewedAt: '2026-07-10',
     supportedFormats: ['Animated or single-frame GIF input', 'Animated GIF output'],
   },
+  // ─── High-traffic tools with fully authored content ───────────────────────
+
+  'jpg-to-pdf': {
+    title: 'JPG to PDF',
+    seoTitle: 'JPG to PDF Free Online – No Upload, No Sign-up | opentools',
+    description:
+      'Convert JPG, PNG, or WebP images into a single PDF in seconds. Each image becomes a page. Runs entirely in your browser — no upload, no account.',
+    intro: [
+      'JPG to PDF is the most-searched image conversion on Google, with over six million monthly searches worldwide. This tool handles the entire conversion inside your browser tab — your photos are never sent to a server. Drop one image or twenty, arrange them in the order you need, pick a page size, and download a PDF in seconds.',
+      'The tool uses pdf-lib, a pure-JavaScript PDF library, to assemble each image as a separate page. Images are read and decoded by the browser\'s native APIs, then written into the PDF structure locally. The finished file lands directly in your downloads folder.',
+      'A common use case is sending scanned documents, receipts, or ID photos by email, since PDF is a universally accepted format and many submission portals require it. The output PDF is compatible with Adobe Acrobat, Preview, Google Drive, and every modern PDF viewer.',
+    ],
+    steps: [
+      {
+        title: 'Add your images',
+        description: 'Drop JPG, JPEG, PNG, or WebP files into the upload area, or click to browse. You can add multiple images at once — each image will become one PDF page.',
+      },
+      {
+        title: 'Set the page style',
+        description: 'Choose between image-sized pages (each page matches the image dimensions exactly) or A4 portrait (every image is fitted and centred on a standard A4 page).',
+      },
+      {
+        title: 'Convert and download',
+        description: 'Click Convert, then download the finished PDF. Open it to confirm page order and quality before sharing or submitting.',
+      },
+    ],
+    useCases: [
+      'Bundle scanned receipts or invoices into a single PDF for accounting or reimbursement.',
+      'Convert iPhone HEIC photos (via the Image Converter first) or JPEGs into a printable PDF document.',
+      'Package ID photos, certificates, or signed forms into one PDF before uploading to an online portal.',
+      'Turn a sequence of screenshots into a clean PDF report or presentation handout.',
+    ],
+    limitations: [
+      'The PDF contains embedded raster images. It is not searchable — use an OCR tool if you need selectable text.',
+      'Very large or numerous high-resolution images can exhaust browser memory, especially on mobile. Compress images first if the PDF is too large to email.',
+      'Transparency in PNG images is not preserved — transparent pixels are composited against white before embedding.',
+    ],
+    faqs: [
+      {
+        question: 'Is JPG to PDF free?',
+        answer: 'Yes, completely free with no usage limits. No account, no credit card, and no watermark is added to the output PDF.',
+      },
+      {
+        question: 'Are my images uploaded when I convert JPG to PDF?',
+        answer: 'No. All processing runs in your browser tab using the pdf-lib JavaScript library. Your image files never leave your device.',
+      },
+      {
+        question: 'Can I convert multiple JPGs into one PDF?',
+        answer: 'Yes. Add as many images as you need. Each image becomes a separate page in the PDF, in the order you arrange them.',
+      },
+      {
+        question: 'What image formats are supported?',
+        answer: 'JPG, JPEG, PNG, and WebP are all supported. For HEIC photos from an iPhone, use the HEIC to JPG converter first.',
+      },
+      {
+        question: 'How do I reduce the PDF file size after converting?',
+        answer: 'Use the Compress PDF tool on the output, or compress the images before converting using the Compress JPG or Compress PNG tool.',
+      },
+    ],
+    relatedToolIds: ['images-to-pdf', 'png-to-pdf', 'compress-jpg', 'compress-pdf', 'pdf-to-jpg', 'heic-to-jpg'],
+    reviewedAt: '2026-07-12',
+    supportedFormats: ['JPEG / JPG', 'PNG', 'WebP'],
+  },
+
+  'png-to-pdf': {
+    title: 'PNG to PDF',
+    seoTitle: 'PNG to PDF Free Online – Browser-Based, No Upload | opentools',
+    description:
+      'Convert PNG images to PDF instantly in your browser. One image per page, no upload, no sign-up, no watermark. Works with screenshots and transparent PNGs.',
+    intro: [
+      'PNG to PDF converts one or more PNG images into a multi-page PDF directly inside your browser. PNG is the standard format for screenshots, diagrams, design exports, and graphics with transparency — and PDF is the document format accepted by email attachments, portals, and printers everywhere.',
+      'The tool uses the same browser-based PDF assembly pipeline as JPG to PDF. Your PNG files are read locally, decoded by native browser APIs, composited against white (for transparent areas), and written into a PDF that downloads immediately. Nothing is uploaded.',
+      'If you need to convert a mix of PNGs and JPEGs in one document, use the Images to PDF tool, which accepts any combination of image formats.',
+    ],
+    steps: [
+      {
+        title: 'Upload your PNG files',
+        description: 'Drag PNG images into the upload area or click to browse. Add multiple files to combine them into a multi-page PDF.',
+      },
+      {
+        title: 'Choose the page layout',
+        description: 'Select image-sized pages to match each PNG\'s exact dimensions, or A4 portrait to fit every image proportionally on a standard page.',
+      },
+      {
+        title: 'Download the PDF',
+        description: 'Click Convert to generate the PDF locally, then download and review it.',
+      },
+    ],
+    useCases: [
+      'Convert a sequence of UI screenshots into a design review PDF to share with stakeholders.',
+      'Package infographics or diagrams exported from Figma, Canva, or Photoshop into a PDF.',
+      'Turn scanned PNG images of signed documents into a single PDF for submission.',
+      'Bundle transparent-background icons or logos into a PDF asset sheet.',
+    ],
+    limitations: [
+      'Transparent PNG areas are composited against white — the PDF format does not natively preserve alpha channels in raster images.',
+      'The resulting PDF is image-only and not searchable. Add text using the Add Text to PDF tool after conversion if needed.',
+      'Very large, high-resolution PNGs can exceed browser memory on mobile devices.',
+    ],
+    faqs: [
+      {
+        question: 'Is PNG to PDF completely free?',
+        answer: 'Yes. Free with no usage caps, no sign-up, and no watermark. The output PDF is clean and unbranded.',
+      },
+      {
+        question: 'Are my PNG files uploaded to a server?',
+        answer: 'No. The conversion runs entirely in your browser. Your PNG files are never transmitted anywhere.',
+      },
+      {
+        question: 'Does transparent background become white in the PDF?',
+        answer: 'Yes. PDF raster images do not support transparency, so transparent pixels are filled with white during conversion.',
+      },
+      {
+        question: 'Can I mix PNG and JPG in the same PDF?',
+        answer: 'For mixed formats, use the Images to PDF tool, which accepts JPG, PNG, and WebP together.',
+      },
+    ],
+    relatedToolIds: ['jpg-to-pdf', 'images-to-pdf', 'compress-png', 'compress-pdf', 'pdf-to-jpg', 'image-converter'],
+    reviewedAt: '2026-07-12',
+    supportedFormats: ['PNG'],
+  },
+
+  'merge-pdfs': {
+    title: 'Merge PDFs',
+    seoTitle: 'Merge PDF Free Online – Combine PDFs in Your Browser | opentools',
+    description:
+      'Merge multiple PDF files into one document instantly. Drag to reorder pages, combine any number of files, no upload, no sign-up, no size limit imposed by a server.',
+    intro: [
+      'Merge PDF is one of the most-searched PDF tasks globally, with tens of millions of monthly queries. This tool combines two or more PDF files into a single document in your browser, preserving the full content of each — text, images, links, bookmarks, and form fields remain intact because no rasterization is involved.',
+      'The combination uses pdf-lib, which reads the PDF structure of each file and copies pages directly into a new document. The merge is lossless: vector content, selectable text, and embedded fonts survive the process. The resulting PDF downloads directly without passing through any server.',
+      'Drag and drop to reorder files before merging. The page order in the output follows the order in which files appear in the list from top to bottom.',
+    ],
+    steps: [
+      {
+        title: 'Add your PDF files',
+        description: 'Drop two or more PDFs into the upload area. Drag the items in the list to set the final page order before combining.',
+      },
+      {
+        title: 'Review the order',
+        description: 'Confirm the file sequence is correct. The merged PDF will contain the pages of each file in the order shown, from first to last.',
+      },
+      {
+        title: 'Merge and download',
+        description: 'Click Merge to generate the combined PDF locally. Download and open it to verify all pages are present and in the right order.',
+      },
+    ],
+    useCases: [
+      'Combine a cover letter and a CV into a single PDF before sending a job application.',
+      'Merge monthly bank or invoice PDFs into one file for annual bookkeeping.',
+      'Join scanned document pages that were saved as separate PDFs into one complete file.',
+      'Combine a report body, appendix, and supporting data into a single deliverable PDF.',
+    ],
+    limitations: [
+      'Password-protected PDFs must be unlocked first using the Unlock PDF tool before they can be merged.',
+      'Merging many large PDFs can consume significant browser memory. For very large batches, merge in smaller groups.',
+      'Bookmarks and named destinations are not currently carried across to the merged output.',
+    ],
+    faqs: [
+      {
+        question: 'Is Merge PDF free?',
+        answer: 'Yes, completely free. No account, no watermark, and no limit on the number of files you can merge in a session.',
+      },
+      {
+        question: 'Are my PDF files uploaded when I merge them?',
+        answer: 'No. All processing happens in your browser using a JavaScript PDF library. Your files are never sent to any server.',
+      },
+      {
+        question: 'Is the merged PDF lossless?',
+        answer: 'Yes. The merge copies PDF page structures directly — text, images, links, and fonts are preserved without re-encoding or rasterization.',
+      },
+      {
+        question: 'Can I merge password-protected PDFs?',
+        answer: 'Not directly. Use the Unlock PDF tool first to remove the password, then merge the unlocked files.',
+      },
+      {
+        question: 'How many PDFs can I combine at once?',
+        answer: 'There is no hard limit. Practical limits depend on the total size and your device\'s available browser memory. Merge in smaller batches for very large files.',
+      },
+    ],
+    relatedToolIds: ['split-pdf', 'compress-pdf', 'rearrange-pages', 'delete-pages', 'extract-pages', 'images-to-pdf'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'compress-pdf': {
+    title: 'Compress PDF',
+    seoTitle: 'Compress PDF Free Online – Reduce Size, No Upload | opentools',
+    description:
+      'Reduce PDF file size by re-encoding pages as compressed images. Choose resolution and quality. Runs in your browser — files are never uploaded to a server.',
+    intro: [
+      'Compress PDF reduces the size of a PDF document by rendering each page to a raster image at a chosen DPI and re-encoding it as JPEG. This approach shrinks files dramatically, especially PDFs that contain large embedded photos or high-DPI scanned pages, making them easier to email or upload to portals with attachment limits.',
+      'Processing is entirely client-side using pdf.js for rendering and jsPDF for re-assembly. No content is sent to a server. The trade-off is that the output PDF contains raster images rather than vector text: the file will be smaller but the text will no longer be selectable or searchable unless you run OCR afterwards.',
+      'Use a lower DPI (72–96) and quality (60–70%) for maximum size reduction. Use higher DPI (150–200) and quality (85–90%) to preserve readability for on-screen viewing or moderate-resolution printing.',
+    ],
+    steps: [
+      {
+        title: 'Upload the PDF',
+        description: 'Drop your PDF into the tool. The file is read entirely in your browser — no upload occurs.',
+      },
+      {
+        title: 'Adjust compression settings',
+        description: 'Set the output DPI (resolution) and JPEG quality. Lower values produce smaller files; higher values preserve more detail.',
+      },
+      {
+        title: 'Compress and download',
+        description: 'Click Compress to process the PDF locally. Review the file size reduction, then download the result.',
+      },
+    ],
+    useCases: [
+      'Shrink a large scanned PDF to fit an email attachment limit (typically 10–25 MB).',
+      'Reduce a portfolio PDF for uploading to a job application portal with a size cap.',
+      'Compress a multi-page document before sharing via messaging apps that cap file size.',
+      'Create a lightweight screen-quality copy of a print-resolution report.',
+    ],
+    limitations: [
+      'Compression rasterizes vector content — selectable text, clickable links, and vector graphics are converted to pixels.',
+      'Very complex documents or those with many high-resolution pages may be slow to process or run out of browser memory on mobile devices.',
+      'File size reduction is not guaranteed. PDFs already containing compressed images may not shrink significantly.',
+    ],
+    faqs: [
+      {
+        question: 'Is Compress PDF free to use?',
+        answer: 'Yes, completely free. No account, no watermark, and no limit on how many times you compress a file.',
+      },
+      {
+        question: 'Are my files uploaded when I compress a PDF?',
+        answer: 'No. The entire compression pipeline runs in your browser tab using pdf.js and jsPDF. Your PDF is never sent to opentools or any third-party server.',
+      },
+      {
+        question: 'Will the compressed PDF still be readable?',
+        answer: 'Yes, for most screen-viewing purposes. At 108 DPI and 70% quality (the default), text remains legible on screen. For printing, use at least 150 DPI and 85% quality.',
+      },
+      {
+        question: 'Why does the compressed PDF lose searchable text?',
+        answer: 'The compression method rasterizes every page to an image. The output PDF contains pixel snapshots of each page, not the original vector text. Use an OCR tool if you need to restore text selection.',
+      },
+      {
+        question: 'How much can I reduce the file size?',
+        answer: 'A scanned PDF at 300 DPI can typically be reduced by 60–80% at 96 DPI / 70% quality with no visible difference on screen. PDFs already containing heavily compressed images will shrink less.',
+      },
+    ],
+    relatedToolIds: ['merge-pdfs', 'split-pdf', 'flatten-pdf', 'pdf-to-jpg', 'jpg-to-pdf', 'compress-jpg'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'pdf-to-jpg': {
+    title: 'PDF to JPG',
+    seoTitle: 'PDF to JPG Free Online – Convert PDF Pages to Images | opentools',
+    description:
+      'Convert PDF pages to JPG images at a chosen DPI and quality. Runs entirely in your browser — no upload, no account required. Download all pages as a ZIP.',
+    intro: [
+      'PDF to JPG renders each page of a PDF into a JPEG image at the resolution and quality you choose. This is useful when you need to embed a PDF\'s visual content into an image editor, post a page as a social media image, or extract visual content from a PDF that does not allow copying.',
+      'Rendering is powered by pdf.js, Mozilla\'s open-source PDF engine, running entirely in the browser. Each page is drawn to an off-screen canvas at your chosen DPI, then encoded as a JPEG. Multiple pages are packaged into a ZIP file for a single download.',
+      'The output images are pixel-accurate representations of each page. They do not contain selectable text. For text extraction, use the PDF to Text tool instead.',
+    ],
+    steps: [
+      {
+        title: 'Upload your PDF',
+        description: 'Drop the PDF file into the tool or click to browse. The file is processed locally — no upload occurs.',
+      },
+      {
+        title: 'Choose resolution and quality',
+        description: 'Set the DPI (72 for web use, 150 for standard print, 300 for high-quality print) and JPEG quality. A page range can be entered to convert only specific pages.',
+      },
+      {
+        title: 'Convert and download',
+        description: 'Click Convert. For a single page the JPEG downloads directly. For multiple pages a ZIP file containing all the JPEGs is downloaded.',
+      },
+    ],
+    useCases: [
+      'Extract individual pages from a PDF to use as images in a presentation or document.',
+      'Capture a PDF page as a JPG thumbnail for a website or email preview.',
+      'Convert a scanned PDF to JPEG images for uploading to an image gallery or CMS.',
+      'Produce print-ready JPEG copies of PDF pages at 300 DPI for a print shop.',
+    ],
+    limitations: [
+      'The output is a raster image — text in the JPEG is not selectable or searchable.',
+      'Very large or complex PDFs may be slow to render in the browser, especially on mobile.',
+      'Encrypted or password-protected PDFs must be unlocked first using the Unlock PDF tool.',
+    ],
+    faqs: [
+      {
+        question: 'Is PDF to JPG free?',
+        answer: 'Yes, completely free with no usage limits, no account required, and no watermark on the output images.',
+      },
+      {
+        question: 'Are my PDF files uploaded when converting to JPG?',
+        answer: 'No. pdf.js renders each page directly in your browser. Your PDF file is never transmitted to any server.',
+      },
+      {
+        question: 'What DPI should I use?',
+        answer: '72 DPI is suitable for web or email previews. 150 DPI gives a good balance for on-screen and light printing. 300 DPI is suitable for commercial print quality.',
+      },
+      {
+        question: 'Can I convert only specific pages?',
+        answer: 'Yes. Enter a page range in the settings — for example "1-3, 5" to convert pages 1, 2, 3, and 5.',
+      },
+      {
+        question: 'What is the difference between PDF to JPG and PDF to Images?',
+        answer: 'PDF to JPG converts pages specifically to JPEG format. PDF to Images offers PNG, JPEG, and WebP as output options.',
+      },
+    ],
+    relatedToolIds: ['pdf-to-images', 'jpg-to-pdf', 'compress-jpg', 'compress-pdf', 'merge-pdfs', 'split-pdf'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'split-pdf': {
+    title: 'Split PDF',
+    seoTitle: 'Split PDF Free Online – Extract Pages, No Upload | opentools',
+    description:
+      'Split a PDF into individual pages or equal chunks. Runs entirely in your browser — no upload, no sign-up. Download all pages as a ZIP or as a single PDF.',
+    intro: [
+      'Split PDF separates a multi-page PDF into individual page files or equally-sized chunks, entirely in the browser. This is useful when you need to extract a single chapter from a long document, isolate a specific page to send separately, or divide a merged PDF back into its source parts.',
+      'The split is lossless: pdf-lib copies PDF page structures without re-encoding. Selectable text, links, fonts, and embedded images all survive intact in each output file. No rasterization occurs.',
+      'For a single extracted page the download is a plain PDF. For multiple pages or chunks a ZIP file is downloaded, with each output named clearly (e.g. document-page-3.pdf or document-pages-5-10.pdf).',
+    ],
+    steps: [
+      {
+        title: 'Upload the PDF',
+        description: 'Drop your PDF into the tool. It is read and processed entirely in your browser.',
+      },
+      {
+        title: 'Choose how to split',
+        description: 'Select "One PDF per page" to produce one file per page, or "Equal page chunks" and enter the number of pages per chunk.',
+      },
+      {
+        title: 'Split and download',
+        description: 'Click Split. A ZIP of all output PDFs (or a single PDF for one page) downloads automatically. Inspect each file to confirm the split.',
+      },
+    ],
+    useCases: [
+      'Extract a single contract page to sign and return without the rest of the document.',
+      'Break a multi-chapter report into individual chapter PDFs for separate distribution.',
+      'Divide a merged bank statement PDF into monthly files.',
+      'Isolate one page from a scanned booklet to share without revealing other pages.',
+    ],
+    limitations: [
+      'Interactive form fields are split with the page they belong to but may not function correctly in isolation if they reference other pages.',
+      'Password-protected PDFs must be unlocked first using the Unlock PDF tool.',
+      'Very large PDFs may be slow to process in the browser. Consider splitting in smaller page-range batches.',
+    ],
+    faqs: [
+      {
+        question: 'Is Split PDF free?',
+        answer: 'Yes, completely free. No account, no watermark, and no limit on file size imposed by a server.',
+      },
+      {
+        question: 'Are my files uploaded when I split a PDF?',
+        answer: 'No. The split runs entirely in your browser using pdf-lib. Your PDF file never leaves your device.',
+      },
+      {
+        question: 'Is the split lossless?',
+        answer: 'Yes. Page structures are copied without re-encoding, so text, links, and images are fully preserved in each output file.',
+      },
+      {
+        question: 'Can I split into specific page ranges?',
+        answer: 'For extracting specific page ranges, use the Extract Pages tool, which accepts a range like "1-3, 5, 8-12".',
+      },
+    ],
+    relatedToolIds: ['merge-pdfs', 'extract-pages', 'delete-pages', 'rearrange-pages', 'compress-pdf', 'pdf-to-jpg'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'rotate-image': {
+    title: 'Rotate Image',
+    seoTitle: 'Rotate Image Free Online – 90°, 180°, 270° | opentools',
+    description:
+      'Rotate images 90°, 180°, or 270° clockwise or counter-clockwise. Free, instant, browser-based. No upload, works with JPG, PNG, WebP, HEIC, and more.',
+    intro: [
+      'Rotate Image corrects the orientation of a photo or graphic without re-uploading to any server. If a portrait shot from your phone is displaying sideways, or a scanned document came in upside-down, this tool fixes the orientation in a single click.',
+      'The rotation is lossless for PNG, WebP, and AVIF outputs — pixel values are transposed without recompression. For JPEG output, the image is decoded and re-encoded, which applies the selected quality setting. Choose PNG output if you need a bit-perfect orientation correction with no quality loss.',
+      'The tool can also rotate a batch of images at once, outputting each corrected file in the selected format.',
+    ],
+    steps: [
+      {
+        title: 'Upload your image',
+        description: 'Drop a JPG, PNG, WebP, HEIC, or AVIF image into the tool, or click to browse. Multiple images can be added for batch rotation.',
+      },
+      {
+        title: 'Choose the rotation angle',
+        description: 'Select 90° clockwise, 180°, or 90° counter-clockwise (270°). Use the live preview to confirm the new orientation before converting.',
+      },
+      {
+        title: 'Apply and download',
+        description: 'Click Rotate to create the corrected image, then download it. The original file on your device is unchanged.',
+      },
+    ],
+    useCases: [
+      'Fix a portrait photo from a phone camera that is displaying sideways in an email or presentation.',
+      'Correct a scanned document that was placed on the scanner in the wrong orientation.',
+      'Rotate a map or diagram to a horizontal reading orientation.',
+      'Batch-rotate a folder of misoriented photos before uploading to a gallery.',
+    ],
+    limitations: [
+      'JPEG output re-encodes the image at the selected quality, which is not perfectly lossless. Use PNG output for lossless rotation.',
+      'EXIF orientation metadata is applied at decode time and then cleared in the output — the visual rotation is embedded in the pixel data.',
+      'Animated GIFs cannot be rotated by this tool; use the GIF tools for animated files.',
+    ],
+    faqs: [
+      {
+        question: 'Is Rotate Image free?',
+        answer: 'Yes, completely free with no watermark and no account required.',
+      },
+      {
+        question: 'Does rotating a JPG reduce quality?',
+        answer: 'When you save as JPEG, the re-encoding applies the quality setting and may reduce quality slightly. To rotate without quality loss, save as PNG.',
+      },
+      {
+        question: 'Why does my photo still look rotated on some devices?',
+        answer: 'Some cameras store rotation in EXIF metadata rather than in the pixel data. This tool reads the EXIF orientation at decode time and applies it to the pixels, then clears the tag — so the output will display correctly everywhere.',
+      },
+      {
+        question: 'Can I rotate multiple images at once?',
+        answer: 'Yes. Add multiple images to the tool and they will all be rotated by the same angle in a single step.',
+      },
+    ],
+    relatedToolIds: ['flip-image', 'crop-image', 'resize-image', 'remove-exif-metadata', 'image-converter', 'compress-jpg'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'flip-image': {
+    title: 'Flip Image',
+    seoTitle: 'Flip Image Free Online – Mirror Horizontally or Vertically | opentools',
+    description:
+      'Flip images horizontally or vertically (mirror effect) in your browser. Free, instant, no upload. Works with JPG, PNG, WebP, AVIF, and HEIC.',
+    intro: [
+      'Flip Image mirrors a photo or graphic horizontally (left-right) or vertically (top-bottom) entirely inside your browser. A horizontal flip creates a mirror image — useful for reversing text watermarks, matching a reference image to a mirrored layout, or creating symmetry effects. A vertical flip inverts top-to-bottom.',
+      'Processing uses the browser\'s Canvas API. The source image is decoded, drawn to a mirrored canvas, and encoded in your chosen output format. No image data is uploaded.',
+      'Both flip directions can be combined in sequence: flip horizontal, then flip vertical, to achieve a 180° rotation equivalent.',
+    ],
+    steps: [
+      {
+        title: 'Upload your image',
+        description: 'Drop a JPG, PNG, WebP, or HEIC image into the tool, or click to browse.',
+      },
+      {
+        title: 'Choose the flip direction',
+        description: 'Select Flip Horizontal (left-right mirror) or Flip Vertical (upside-down). The live preview shows the result before you download.',
+      },
+      {
+        title: 'Download the flipped image',
+        description: 'Click the action button to produce the mirrored image, then download it.',
+      },
+    ],
+    useCases: [
+      'Mirror a product photo for a layout that requires left-right symmetry.',
+      'Reverse a watermarked image to produce an unmarked visual reference.',
+      'Create a vertical flip of a landscape photo for a reflection composite.',
+      'Correct a selfie camera preview that was saved mirrored.',
+    ],
+    limitations: [
+      'Text in the image will appear reversed after a horizontal flip — this is a feature of the mirror effect, not a bug.',
+      'JPEG output re-encodes the pixels at the selected quality. Use PNG for lossless flipping.',
+      'Animated images (GIFs) cannot be processed; only single-frame images are supported.',
+    ],
+    faqs: [
+      {
+        question: 'Is Flip Image free?',
+        answer: 'Yes, completely free with no upload, no account, and no watermark.',
+      },
+      {
+        question: 'What is the difference between flip horizontal and flip vertical?',
+        answer: 'Flip horizontal mirrors the image left-to-right (as if reflected in a vertical mirror). Flip vertical inverts the image top-to-bottom (as if reflected in a horizontal mirror).',
+      },
+      {
+        question: 'Can I flip a PNG without losing transparency?',
+        answer: 'Yes. Choose PNG as the output format and transparency is preserved through the flip.',
+      },
+    ],
+    relatedToolIds: ['rotate-image', 'crop-image', 'resize-image', 'image-converter', 'compress-jpg', 'compress-png'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'rearrange-pages': {
+    title: 'Rearrange Pages',
+    seoTitle: 'Rearrange PDF Pages Free Online – Drag to Reorder | opentools',
+    description:
+      'Reorder PDF pages visually by dragging thumbnails. Browser-based, no upload, no sign-up. Lossless — selectable text and links are fully preserved.',
+    intro: [
+      'Rearrange Pages lets you drag and drop page thumbnails to reorder a PDF without installing any desktop software and without uploading the file to a server. It is the fastest way to fix the page order of a scanned document, move a summary page to the front, or reorganise a report after merging several sources.',
+      'The reordering is powered by pdf-lib and is fully lossless. Page content — text, fonts, links, images, and annotations — is copied into a new PDF in the order you set. Nothing is re-encoded or converted to a raster image.',
+      'Thumbnails are rendered at low resolution for speed. The full-resolution PDF is assembled from the original data, not from the thumbnail images, so quality is unchanged.',
+    ],
+    steps: [
+      {
+        title: 'Upload the PDF',
+        description: 'Drop your PDF into the tool. Page thumbnails are rendered in the browser for the reorder interface.',
+      },
+      {
+        title: 'Drag pages into the correct order',
+        description: 'Click and drag any page thumbnail to move it. The number above each page reflects the new position in real time.',
+      },
+      {
+        title: 'Save the reordered PDF',
+        description: 'Click Rearrange to produce the new PDF with your custom page order. Download it and open to confirm.',
+      },
+    ],
+    useCases: [
+      'Move an executive summary or cover page to the front of a merged report.',
+      'Fix the page order of a double-sided scan that came out interleaved.',
+      'Reorganise a presentation PDF to match a revised slide deck order.',
+      'Sort invoice pages by date before submitting to accounting.',
+    ],
+    limitations: [
+      'Password-protected PDFs must be unlocked before they can be reordered.',
+      'Bookmarks that reference specific page numbers by index may point to the wrong page after reordering.',
+      'Only the page order changes — annotations, comments, and metadata are preserved but not reordered.',
+    ],
+    faqs: [
+      {
+        question: 'Is Rearrange Pages free?',
+        answer: 'Yes, completely free. No account, no watermark, no limit on number of pages.',
+      },
+      {
+        question: 'Are my files uploaded to rearrange pages?',
+        answer: 'No. Page thumbnails are rendered and rearrangement is performed entirely in your browser using pdf-lib.',
+      },
+      {
+        question: 'Is the output lossless?',
+        answer: 'Yes. Page structures are copied without re-encoding, preserving selectable text, links, fonts, and embedded images.',
+      },
+    ],
+    relatedToolIds: ['merge-pdfs', 'split-pdf', 'delete-pages', 'extract-pages', 'rotate-pages', 'compress-pdf'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'extract-pages': {
+    title: 'Extract Pages',
+    seoTitle: 'Extract PDF Pages Free Online – No Upload | opentools',
+    description:
+      'Extract specific pages from a PDF into a new document. Enter a page range like "1-3, 5". Browser-based, no upload, lossless — text and links stay intact.',
+    intro: [
+      'Extract Pages pulls selected pages out of a PDF and saves them as a new PDF document, entirely in your browser. Enter a page range — single pages, ranges, or a combination — and the tool creates a clean output containing only the pages you specified.',
+      'The extraction is lossless. pdf-lib copies page structures directly: selectable text, vector graphics, embedded fonts, clickable links, and annotations all survive in the output. Nothing is rasterized.',
+      'This is the right tool when you want a specific subset of pages from a document. To remove unwanted pages from the original instead, use the Delete Pages tool.',
+    ],
+    steps: [
+      {
+        title: 'Upload the PDF',
+        description: 'Drop your PDF into the tool. It is processed locally in your browser.',
+      },
+      {
+        title: 'Enter the page range',
+        description: 'Type the pages you want to keep — for example "1-3, 5, 8-12". Separate non-consecutive pages with commas.',
+      },
+      {
+        title: 'Extract and download',
+        description: 'Click Extract to create a new PDF containing only the selected pages. Download and review it.',
+      },
+    ],
+    useCases: [
+      'Extract a single contract clause page to review or share without the full document.',
+      'Pull the appendix from a report to distribute separately.',
+      'Extract signature pages from a multi-party agreement.',
+      'Isolate a single page of a textbook or technical manual for reference.',
+    ],
+    limitations: [
+      'Cross-page references (such as "see page 12") in the source document will still refer to the original page numbers, which may no longer match in the extracted output.',
+      'Password-protected PDFs must be unlocked first.',
+      'Interactive form fields that span multiple pages may not function correctly in isolation.',
+    ],
+    faqs: [
+      {
+        question: 'Is Extract Pages free?',
+        answer: 'Yes, completely free with no upload and no watermark.',
+      },
+      {
+        question: 'What page range format should I use?',
+        answer: 'Use comma-separated values and hyphens for ranges. For example: "1, 3-5, 9" extracts pages 1, 3, 4, 5, and 9.',
+      },
+      {
+        question: 'Is the extracted PDF lossless?',
+        answer: 'Yes. Text, fonts, images, and links are preserved exactly — no rasterization occurs.',
+      },
+      {
+        question: 'What is the difference between Extract Pages and Delete Pages?',
+        answer: 'Extract Pages keeps only the pages you specify and discards the rest. Delete Pages removes the pages you specify and keeps everything else.',
+      },
+    ],
+    relatedToolIds: ['delete-pages', 'split-pdf', 'merge-pdfs', 'rearrange-pages', 'compress-pdf', 'pdf-to-jpg'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'delete-pages': {
+    title: 'Delete Pages',
+    seoTitle: 'Delete PDF Pages Free Online – Remove Pages, No Upload | opentools',
+    description:
+      'Remove unwanted pages from a PDF by entering a page range. Browser-based, no upload, lossless. Keeps all remaining text, links, and images intact.',
+    intro: [
+      'Delete Pages removes one or more pages from a PDF and saves the remaining content as a new document, without uploading the file to any server. Enter the page numbers you want removed — single pages, ranges, or a mix — and the tool produces a clean output with those pages gone.',
+      'Deletion is lossless. pdf-lib copies the surviving page structures directly, preserving selectable text, embedded fonts, links, annotations, and images in the remaining pages.',
+      'To keep specific pages and discard everything else, use the Extract Pages tool instead.',
+    ],
+    steps: [
+      {
+        title: 'Upload the PDF',
+        description: 'Drop your PDF into the tool. Processing is local — the file is not uploaded.',
+      },
+      {
+        title: 'Enter the pages to delete',
+        description: 'Type the page numbers to remove — for example "1, 3-5" to delete pages 1, 3, 4, and 5. Ranges and individual pages can be mixed.',
+      },
+      {
+        title: 'Delete and download',
+        description: 'Click Delete pages to produce the updated PDF. Download it and confirm the unwanted pages are gone.',
+      },
+    ],
+    useCases: [
+      'Remove a cover page or confidentiality notice before sharing a document internally.',
+      'Delete blank or filler pages from a scanned PDF.',
+      'Remove duplicate pages that appeared when combining multiple PDFs.',
+      'Strip a signature page from a template before re-using it.',
+    ],
+    limitations: [
+      'You cannot delete all pages — at least one page must remain in the output.',
+      'Password-protected PDFs must be unlocked first.',
+      'Cross-references to deleted page numbers in the remaining text become stale.',
+    ],
+    faqs: [
+      {
+        question: 'Is Delete Pages free?',
+        answer: 'Yes, completely free. No account, no watermark, no server upload.',
+      },
+      {
+        question: 'Can I visually select pages to delete?',
+        answer: 'Yes. Use the visual page selector — click pages to toggle them for deletion. You can also type a range directly.',
+      },
+      {
+        question: 'Is the output lossless?',
+        answer: 'Yes. Remaining pages are copied without re-encoding, so text, fonts, links, and images are fully preserved.',
+      },
+      {
+        question: 'What is the difference between Delete Pages and Extract Pages?',
+        answer: 'Delete Pages removes the pages you specify. Extract Pages keeps only the pages you specify. Use whichever is more convenient for your selection.',
+      },
+    ],
+    relatedToolIds: ['extract-pages', 'split-pdf', 'merge-pdfs', 'rearrange-pages', 'compress-pdf', 'rotate-pages'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'add-watermark-to-pdf': {
+    title: 'Add Watermark to PDF',
+    seoTitle: 'Add Watermark to PDF Free Online – No Upload | opentools',
+    description:
+      'Stamp a text watermark on every page of a PDF. Choose font size, colour, opacity, and rotation. Runs in your browser — no upload, no sign-up needed.',
+    intro: [
+      'Add Watermark to PDF overlays a text stamp — such as "CONFIDENTIAL", "DRAFT", or your company name — on every page of a PDF document, entirely in the browser. The watermark is centred on each page and scaled so it stays on-page regardless of font size or rotation angle.',
+      'The watermark is added by pdf-lib and is embedded as real PDF text on top of existing page content. It is vector-based, not a raster overlay, which means it scales cleanly at any zoom level and prints sharply.',
+      'Use the opacity slider to set how visible the watermark is — from a subtle 10% hint to a fully opaque 100% stamp. Combine with the rotation control (horizontal, 45°, or -45°) to achieve the diagonal watermark look common in legal and financial documents.',
+    ],
+    steps: [
+      {
+        title: 'Upload the PDF',
+        description: 'Drop your PDF into the tool. It is processed entirely in your browser.',
+      },
+      {
+        title: 'Configure the watermark',
+        description: 'Enter the watermark text. Adjust font size, colour, opacity, and rotation angle. The live preview shows page 1 with your settings applied in real time.',
+      },
+      {
+        title: 'Apply and download',
+        description: 'Click Add Watermark to stamp every page and download the result. Open it to confirm the watermark appears correctly.',
+      },
+    ],
+    useCases: [
+      'Mark a draft document with "DRAFT" before distributing for review.',
+      'Stamp "CONFIDENTIAL" on sensitive reports before sharing externally.',
+      'Add a company name watermark to PDFs before sending to clients.',
+      'Mark approved documents with "APPROVED" and a date stamp.',
+    ],
+    limitations: [
+      'The watermark is added as a PDF text layer. It can be removed by someone with PDF editing software — use the Redact PDF tool if you need tamper-proof marking.',
+      'Watermark text is rendered in Helvetica. Custom fonts are not currently supported.',
+      'The live preview shows only page 1. The same watermark is applied to all pages (or a specified range) in the output.',
+    ],
+    faqs: [
+      {
+        question: 'Is Add Watermark to PDF free?',
+        answer: 'Yes, completely free. No account, no limit, and no watermark from opentools is added to your output.',
+      },
+      {
+        question: 'Are my files uploaded to add a watermark?',
+        answer: 'No. The watermark is applied using pdf-lib running in your browser. Your PDF is never sent to a server.',
+      },
+      {
+        question: 'Can I watermark specific pages only?',
+        answer: 'Yes. Leave the pages field blank to watermark all pages, or enter a range like "1-3, 5" to watermark only those pages.',
+      },
+      {
+        question: 'Can someone remove the watermark?',
+        answer: 'The watermark is a PDF text layer and can be removed by someone with PDF editing software. For permanent, tamper-proof redaction, use the Redact PDF tool instead.',
+      },
+    ],
+    relatedToolIds: ['redact-pdf', 'protect-pdf-with-password', 'add-text-to-pdf', 'merge-pdfs', 'compress-pdf', 'add-watermark'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'add-watermark': {
+    title: 'Watermark Image',
+    seoTitle: 'Watermark Image Free Online – Add Text or Logo | opentools',
+    description:
+      'Add a text watermark to images instantly in your browser. Choose color, opacity, size, position, and style. Free, no upload, works with JPG, PNG, WebP.',
+    intro: [
+      'Watermark Image overlays a draggable text stamp on a photo or graphic entirely inside the browser. Choose from single-line, repeated tile, or diagonal stripe watermark styles. Position the text anywhere by dragging it on the live preview, or select a preset anchor position.',
+      'The watermark is composited onto a canvas copy of your image using the Canvas 2D API. No file is uploaded. The original image on your device is not modified — the watermarked version is a new download.',
+      'Common uses include protecting portfolio photographs from unauthorised use, branding product images before publishing, or adding a "SAMPLE" or "NOT FOR DISTRIBUTION" notice to draft graphics.',
+    ],
+    steps: [
+      {
+        title: 'Upload your image',
+        description: 'Drop a JPG, PNG, or WebP image into the tool. A live preview with draggable watermark controls appears.',
+      },
+      {
+        title: 'Set the watermark text and style',
+        description: 'Enter the watermark text, choose a colour, opacity, font size, and style (single, tile, or diagonal). Drag the watermark on the preview to position it.',
+      },
+      {
+        title: 'Apply and download',
+        description: 'Click Apply Watermark to produce the final image with the watermark embedded in the pixels, then download it.',
+      },
+    ],
+    useCases: [
+      'Add a photographer\'s name or copyright notice to portfolio images before posting online.',
+      'Brand product images with a company logo text before uploading to a marketplace.',
+      'Add a "SAMPLE" watermark to design proofs sent to clients for approval.',
+      'Tile a repeating copyright notice across a high-resolution image to deter cropping.',
+    ],
+    limitations: [
+      'The watermark is composited into the pixel data. It cannot be removed cleanly without the original image.',
+      'Only text watermarks are supported. Image or logo watermarks are not currently available.',
+      'Very large images may be slow to process on mobile devices with limited memory.',
+    ],
+    faqs: [
+      {
+        question: 'Is Watermark Image free?',
+        answer: 'Yes, completely free. No account, no usage limits, and opentools adds no watermark of its own.',
+      },
+      {
+        question: 'Are my images uploaded when I add a watermark?',
+        answer: 'No. Watermarking is performed in your browser using the Canvas API. Your image never leaves your device.',
+      },
+      {
+        question: 'Can someone remove the watermark from the image?',
+        answer: 'The watermark is embedded in the pixel data, making it difficult but not impossible to remove with image editing software. Tiling or diagonal watermarks are harder to remove cleanly than a single corner stamp.',
+      },
+      {
+        question: 'What image formats are supported?',
+        answer: 'JPG, PNG, and WebP are fully supported as both input and output.',
+      },
+    ],
+    relatedToolIds: ['add-watermark-to-pdf', 'add-text-to-image', 'compress-jpg', 'resize-image', 'image-converter', 'remove-exif-metadata'],
+    reviewedAt: '2026-07-12',
+  },
 } as const satisfies Record<string, ToolContent>;
 
 export type ToolContentId = keyof typeof TOOL_CONTENT;
