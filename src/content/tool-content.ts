@@ -75,6 +75,16 @@ export const TOOL_CONTENT = {
         answer:
           'No. Decoding and encoding run in the current browser tab. Normal website hosting and analytics traffic may still occur, but the conversion path does not upload the image files.',
       },
+      {
+        question: 'AVIF vs PNG — which should I use?',
+        answer:
+          'Use AVIF for web images where file size matters and browser compatibility is modern (Chrome, Firefox, Safari 16+). AVIF achieves 50–70% smaller files than PNG at similar visual quality. Use PNG when you need perfect lossless reproduction, wide software compatibility, or transparency support in older tools. For photographs on a website, AVIF or WebP are better choices; for icons, logos, or images that need to open in any application, PNG is safer.',
+      },
+      {
+        question: 'AVIF vs WebP — what is the difference?',
+        answer:
+          'AVIF generally produces smaller files than WebP at the same visual quality, especially for complex photographs. WebP has slightly broader compatibility (supported since 2020 in all major browsers). Both support transparency and animation. Use AVIF for maximum compression; use WebP for better compatibility with slightly older browser versions.',
+      },
     ],
     relatedToolIds: [
       'heic-to-jpg',
@@ -681,59 +691,64 @@ export const TOOL_CONTENT = {
   },
 
   'remove-exif-metadata': {
-    title: 'Remove EXIF Metadata',
+    title: 'Remove Metadata from Pictures',
+    seoTitle: 'Remove Metadata from Pictures Free Online – No Upload | opentools',
     description:
-      'Create a re-encoded image copy without carrying over the source file’s EXIF, IPTC, or XMP metadata blocks.',
+      'Remove EXIF, GPS, and all hidden metadata from pictures instantly in your browser. No upload, no account. Supports JPG, PNG, WebP, HEIC, and more.',
     intro: [
-      'The tool removes attached source metadata by decoding the image to pixels and creating a new output file. You can keep a supported original format or choose JPEG, PNG, WebP, or AVIF.',
-      'This re-encoding takes place in the browser, so the source image is not uploaded for metadata removal. The decoded image still consumes device memory, and the operation changes the file bytes even when the pixels appear identical.',
+      'Every photo taken on a smartphone or camera carries hidden data inside the file — GPS coordinates, camera model, lens settings, shooting date, and sometimes the photographer\'s name. This tool strips all of that metadata from pictures entirely in your browser, producing a clean image with no attached location or device information.',
+      'The removal works by decoding your image to raw pixels and encoding a fresh output file — no metadata fields survive that round-trip. The visual content is identical, but the output JPG, PNG, WebP, or AVIF contains no EXIF, IPTC, or XMP blocks. Use the View EXIF Data tool to verify the result.',
+      'No file is uploaded. Re-encoding happens locally using native browser APIs, so your GPS location, face thumbnails, and camera fingerprint never leave your device.',
     ],
     steps: [
       {
-        title: 'Work from a copy',
-        description:
-          'Keep the original if capture date, camera settings, copyright fields, colour information, or location may be useful later.',
+        title: 'Back up the original',
+        description: 'Save the original elsewhere first if capture date, camera settings, copyright, or GPS coordinates may be needed later.',
       },
       {
-        title: 'Choose the clean output',
-        description:
-          'Add the image and select keep-original, JPEG, PNG, WebP, or AVIF according to the destination.',
+        title: 'Upload and choose output format',
+        description: 'Drop the image into the tool. Select the output format — keep the original format, or choose JPEG, PNG, WebP, or AVIF.',
       },
       {
-        title: 'Process and verify',
-        description:
-          'Download the new file, check its orientation and appearance, and inspect it with View EXIF Data when metadata removal is important.',
+        title: 'Remove metadata and download',
+        description: 'Click Remove Metadata. Download the clean file and verify with the View EXIF Data tool to confirm all fields are gone.',
       },
     ],
     useCases: [
-      'Prepare a separate photo copy for public posting without attached GPS or camera fields.',
-      'Remove authoring and editing metadata from an image before sharing it.',
-      'Re-encode several images as part of a privacy-conscious publishing workflow.',
+      'Strip GPS coordinates before posting a photo publicly so your home or workplace location is not exposed.',
+      'Remove camera model and serial number before submitting photos to a contest or publication.',
+      'Clean metadata from pictures before sharing via email or messaging apps that do not strip it automatically.',
+      'Remove editing-software signatures (Lightroom, Photoshop) from images before publishing.',
     ],
     limitations: [
-      'The operation removes source metadata wholesale; it cannot selectively preserve copyright, captions, dates, or other chosen fields.',
-      'Metadata removal does not hide visible information such as faces, signs, reflections, landmarks, or text inside the pixels.',
-      'Re-encoding can change file size and, for lossy formats, image detail. “Keep original” falls back to JPEG for decodable formats outside JPEG, PNG, WebP, and AVIF.',
+      'Removes all metadata at once — you cannot selectively keep individual fields like copyright while removing GPS.',
+      'Removing metadata does not remove visible information inside the pixels, such as faces, location names, or text visible in the photo.',
+      'JPEG output re-encodes at the selected quality setting, which can marginally affect file size even though the visual result looks identical.',
     ],
     faqs: [
       {
-        question: 'Does this remove GPS coordinates?',
-        answer:
-          'The source metadata blocks, including EXIF GPS data, are not copied to the re-encoded output. Verify the result when location privacy is critical.',
+        question: 'How do I remove metadata from pictures for free?',
+        answer: 'Drop your image into this tool, choose an output format, and click Remove Metadata. The clean file downloads immediately — no account or upload required.',
       },
       {
-        question: 'Is the original file modified?',
-        answer:
-          'No. The browser creates a new downloadable file; the source on your device remains unchanged.',
+        question: 'Does this remove GPS location from photos?',
+        answer: 'Yes. GPS coordinates stored in EXIF are completely stripped from the output. Verify with the View EXIF Data tool if privacy is critical.',
       },
       {
-        question: 'Can metadata come back after sharing?',
-        answer:
-          'A later app or service can add its own metadata, but it cannot recover removed source fields from the cleaned file alone. Keep the private original separate.',
+        question: 'Are my pictures uploaded to remove metadata?',
+        answer: 'No. All processing runs in your browser. Your images never leave your device — especially important when the metadata itself contains private location or identity data.',
+      },
+      {
+        question: 'What metadata is removed?',
+        answer: 'All EXIF, IPTC, and XMP blocks — including GPS coordinates, camera model, shooting date, lens data, colour profiles, copyright notices, and editing software signatures.',
+      },
+      {
+        question: 'Does removing metadata change image quality?',
+        answer: 'For PNG, WebP, and AVIF outputs the pixel data is losslessly preserved. For JPEG, the re-encoding applies the chosen quality setting, which is visually indistinguishable at 85% or above.',
       },
     ],
-    relatedToolIds: ['view-exif-data', 'image-converter', 'compress-jpg', 'compress-png'],
-    reviewedAt: '2026-07-10',
+    relatedToolIds: ['view-exif-data', 'image-converter', 'compress-jpg', 'compress-png', 'resize-image', 'rotate-image'],
+    reviewedAt: '2026-07-12',
     supportedFormats: [
       'JPEG',
       'PNG',
@@ -805,6 +820,304 @@ export const TOOL_CONTENT = {
     reviewedAt: '2026-07-10',
     supportedFormats: ['Animated or single-frame GIF input', 'Animated GIF output'],
   },
+  // ─── GSC-query-targeted tool content ──────────────────────────────────────
+
+  'add-text': {
+    title: 'Add Text to Image',
+    seoTitle: 'Add Text to Image Free Online – No Upload, Any Font | opentools',
+    description:
+      'Add text to photos and images in your browser. Choose font, size, color, and position. Drag to place anywhere. Free, no upload, works with JPG, PNG, WebP.',
+    intro: [
+      'Add Text to Image lets you type any caption, label, quote, or annotation directly onto a photo or graphic and position it exactly where you want by dragging it on the live canvas. There is no server involved — your image is loaded and rendered entirely inside the browser tab.',
+      'Choose the font family, size, color, opacity, and alignment. The text is composited onto the image at full resolution when you click Apply, and you download the final image in JPG, PNG, or WebP format. The original file on your device is unchanged.',
+      'Common uses include adding captions to social media photos, labelling product images, creating meme-style overlays, and adding copyright notices to photos before publishing online.',
+    ],
+    steps: [
+      {
+        title: 'Upload your image',
+        description: 'Drop a JPG, PNG, or WebP image into the tool. A live preview canvas appears with your image.',
+      },
+      {
+        title: 'Type and style your text',
+        description: 'Enter the text, choose font, size, color, and opacity. Drag the text overlay to position it anywhere on the image — not just preset anchor points.',
+      },
+      {
+        title: 'Apply and download',
+        description: 'Click Apply Text to flatten the text into the image pixels at full resolution. Download the result in your preferred format.',
+      },
+    ],
+    useCases: [
+      'Add a caption or quote overlay to a photo for Instagram, Twitter, or Facebook.',
+      'Label a product or diagram image with annotations before publishing to a website.',
+      'Create a meme or reaction image with a text overlay.',
+      'Add a "Photo by [name]" credit to a photo before sharing publicly.',
+    ],
+    limitations: [
+      'Once applied and downloaded, the text is embedded in the pixel data and cannot be edited without the original image.',
+      'Custom font uploads are not supported — choose from the available system and web font options.',
+      'Very large images combined with complex text may be slow to render on mobile devices.',
+    ],
+    faqs: [
+      {
+        question: 'How do I add text to an image for free?',
+        answer: 'Upload your image, type your text, drag it to the position you want, and click Apply. The download is free with no watermark and no account required.',
+      },
+      {
+        question: 'Can I drag the text to any position?',
+        answer: 'Yes. The text overlay is fully draggable on the preview canvas — click and drag it to place it exactly where you want on the image.',
+      },
+      {
+        question: 'Is my image uploaded when I add text?',
+        answer: 'No. The entire text compositing process runs in your browser using the Canvas API. Your image never leaves your device.',
+      },
+      {
+        question: 'What font options are available?',
+        answer: 'A selection of common system and Google Fonts is available. You can choose family, size, weight, color, and opacity.',
+      },
+    ],
+    relatedToolIds: ['watermark-image', 'add-watermark', 'crop-image', 'resize-image', 'compress-jpg', 'image-converter'],
+    reviewedAt: '2026-07-12',
+    supportedFormats: ['JPEG', 'PNG', 'WebP'],
+  },
+
+  'rename-images': {
+    title: 'Rename Images',
+    seoTitle: 'Rename JPG Online Free – Batch Photo Rename Tool | opentools',
+    description:
+      'Rename JPG, PNG, and other image files online in bulk. Set a name pattern with auto-numbering. Free, browser-based, no upload, no software to install.',
+    intro: [
+      'Rename Images lets you rename a batch of photos online in seconds — no software, no upload. Set a filename template with a custom prefix, separator, and auto-incrementing number, and every image in your batch gets a clean, consistent filename. This is the fastest way to organise a folder of camera photos, screenshots, or downloads before uploading them anywhere.',
+      'Processing is entirely local to your browser. The renamed files are packaged into a ZIP for a single download. The original files on your device are not modified.',
+      'Common patterns: "vacation-001.jpg", "product-photo-1.png", "screenshot-2026-01-01.webp". The numbering starts at the value you specify and increments automatically.',
+    ],
+    steps: [
+      {
+        title: 'Add your images',
+        description: 'Drop the image files you want to rename — any mix of JPG, PNG, WebP, or other formats. Drag to set the order before renaming.',
+      },
+      {
+        title: 'Set the name pattern',
+        description: 'Enter a base name (e.g. "product-photo"), choose a separator ("-", "_", or none), and set the starting number. A preview shows the first few output names.',
+      },
+      {
+        title: 'Rename and download',
+        description: 'Click Rename. The renamed files are bundled into a ZIP file that downloads instantly. Extract and review the filenames.',
+      },
+    ],
+    useCases: [
+      'Rename a batch of camera photos like "IMG_4521.jpg" into descriptive names like "paris-trip-001.jpg" before sharing.',
+      'Standardise screenshot filenames before uploading to a project management tool or shared drive.',
+      'Rename product photos with consistent numbering before uploading to an e-commerce platform.',
+      'Organise a folder of downloaded images with a uniform naming convention.',
+    ],
+    limitations: [
+      'All files in the batch receive the same base name — different prefixes per file are not supported in a single operation.',
+      'The rename is applied to the filename only — EXIF data and image content are unchanged.',
+      'Very large batches (hundreds of high-resolution images) may take a moment to ZIP in the browser.',
+    ],
+    faqs: [
+      {
+        question: 'How do I rename JPG files online for free?',
+        answer: 'Add your JPGs, set the base name and starting number, and click Rename. All files are renamed according to the pattern and downloaded as a ZIP — no account required.',
+      },
+      {
+        question: 'Can I rename multiple photos at once?',
+        answer: 'Yes. The tool processes the entire batch at once. Each photo receives a sequential number appended to the base name you set.',
+      },
+      {
+        question: 'Are my images uploaded to rename them?',
+        answer: 'No. Renaming is handled entirely in your browser. The files are never sent to any server.',
+      },
+      {
+        question: 'Does renaming change the image quality or EXIF data?',
+        answer: 'No. Only the filename changes. The image pixels, format, and EXIF metadata are completely untouched.',
+      },
+    ],
+    relatedToolIds: ['batch-rename', 'remove-exif-metadata', 'compress-jpg', 'image-converter', 'resize-image', 'rotate-image'],
+    reviewedAt: '2026-07-12',
+    supportedFormats: ['JPEG', 'PNG', 'WebP', 'AVIF', 'GIF', 'BMP', 'TIFF', 'HEIC'],
+  },
+
+  'adjust-saturation': {
+    title: 'Adjust Saturation',
+    seoTitle: 'Change Saturation of Image Free Online – No Upload | opentools',
+    description:
+      'Change the saturation of an image online. Boost vivid colours or fade to greyscale. Free, no upload, browser-based. Works with JPG, PNG, and WebP.',
+    intro: [
+      'Adjust Saturation lets you change the colour intensity of an image — dragging the slider right makes colours more vivid and punchy, dragging left desaturates towards greyscale. It is the quickest way to correct a washed-out photo, give a faded image more life, or stylise a photo to a muted or black-and-white look without a full photo editor.',
+      'The adjustment is applied in real time on the preview canvas using the HSL colour model. The saturation value of every pixel is multiplied by your chosen factor while hue and lightness are preserved, so colours shift in intensity without going off-hue.',
+      'No image data is sent anywhere. Processing uses the browser\'s Canvas API and runs on your device.',
+    ],
+    steps: [
+      {
+        title: 'Upload your image',
+        description: 'Drop a JPG, PNG, or WebP image. A live preview updates as you adjust the saturation slider.',
+      },
+      {
+        title: 'Drag the saturation slider',
+        description: 'Move the slider right (above 100%) to increase colour intensity, or left (below 100%) to desaturate. 0% produces a greyscale image.',
+      },
+      {
+        title: 'Download the adjusted image',
+        description: 'Click Apply to encode the result at full resolution, then download it in your chosen format.',
+      },
+    ],
+    useCases: [
+      'Boost the saturation of a washed-out landscape or travel photo to bring colours back to life.',
+      'Desaturate a portrait photo to a muted or greyscale style for a editorial look.',
+      'Increase the vividity of product images before listing them on an e-commerce site.',
+      'Reduce oversaturated colours from a phone camera that applies heavy processing.',
+    ],
+    limitations: [
+      'The tool adjusts global saturation uniformly — selective colour adjustments (e.g. only red channel) are not available.',
+      'Extreme saturation boosts can push highly saturated pixels to pure colour with no detail, which is irreversible in the output image.',
+      'For precise colour grading, use a dedicated image editor with LAB or HSL channel controls.',
+    ],
+    faqs: [
+      {
+        question: 'How do I change the saturation of an image online?',
+        answer: 'Upload the image, drag the saturation slider to the level you want, and download the result. No account or upload to a server is required.',
+      },
+      {
+        question: 'What does increasing saturation do to a photo?',
+        answer: 'It intensifies all colours, making reds redder, blues bluer, and greens greener. Colours that were muted or grey are unaffected since greyscale pixels have no hue to boost.',
+      },
+      {
+        question: 'How do I make an image greyscale using this tool?',
+        answer: 'Set the saturation slider to 0%. This removes all colour information and produces a greyscale version of the image.',
+      },
+      {
+        question: 'Is my image uploaded to adjust saturation?',
+        answer: 'No. The saturation adjustment runs entirely in your browser using the Canvas API. Your image never leaves your device.',
+      },
+    ],
+    relatedToolIds: ['image-converter', 'compress-jpg', 'resize-image', 'crop-image', 'rotate-image', 'flip-image'],
+    reviewedAt: '2026-07-12',
+    supportedFormats: ['JPEG', 'PNG', 'WebP'],
+  },
+
+  'pdf-to-text': {
+    title: 'PDF to Text',
+    seoTitle: 'Convert PDF to Text File Free Online – No Upload | opentools',
+    description:
+      'Extract text from a PDF and download it as a plain .txt file. No upload, browser-based using pdf.js. Works with selectable-text PDFs instantly.',
+    intro: [
+      'PDF to Text extracts all selectable text from a PDF and saves it as a plain .txt file, entirely in your browser. This is the fastest way to convert a PDF to a text file for copy-pasting into another document, running a word count, feeding content into an AI tool, or making the text searchable outside the PDF viewer.',
+      'Text extraction uses pdf.js to read the PDF\'s text content layer — the same layer that appears when you highlight text in a PDF viewer. The tool collects all text from every page in reading order and concatenates it into a single .txt file separated by page breaks.',
+      'This works for PDFs that contain selectable (embedded) text. Scanned documents stored as images require OCR, which this tool does not perform. For scanned PDFs, the output text will be empty or minimal.',
+    ],
+    steps: [
+      {
+        title: 'Upload your PDF',
+        description: 'Drop the PDF into the tool. Processing is local — no file is uploaded.',
+      },
+      {
+        title: 'Preview the extracted text',
+        description: 'The extracted text appears in the preview panel. Scroll to check whether all pages were captured correctly.',
+      },
+      {
+        title: 'Download the text file',
+        description: 'Click Download to save the text as a .txt file. Open it in any text editor, word processor, or code editor.',
+      },
+    ],
+    useCases: [
+      'Convert a PDF report to a plain text file for editing in a word processor or Notion.',
+      'Extract PDF content to feed into an AI writing or summarisation tool.',
+      'Bulk-copy text from a long PDF without manually selecting and pasting page by page.',
+      'Extract contract or legal document text to search with Ctrl+F in a text editor.',
+    ],
+    limitations: [
+      'Only works with PDFs that have an embedded text layer (selectable text). Scanned image PDFs return empty or no text — use an OCR PDF tool for those.',
+      'Complex layouts (multi-column, tables, footnotes) may produce text in a different reading order than the visual layout of the page.',
+      'Password-protected PDFs must be unlocked first using the Unlock PDF tool.',
+    ],
+    faqs: [
+      {
+        question: 'How do I convert a PDF to a text file for free?',
+        answer: 'Drop your PDF into this tool, check the text preview, and click Download to save a .txt file. No account or upload required.',
+      },
+      {
+        question: 'Why is the extracted text empty?',
+        answer: 'The PDF is likely a scanned document stored as images with no embedded text layer. This tool extracts the text layer only. Use an OCR tool to extract text from scanned PDFs.',
+      },
+      {
+        question: 'Is my PDF uploaded to extract text?',
+        answer: 'No. pdf.js reads and processes the PDF entirely within your browser tab. Your PDF file never leaves your device.',
+      },
+      {
+        question: 'What is the difference between PDF to Text and PDF to Word?',
+        answer: 'PDF to Text saves plain, unformatted .txt output — no fonts, tables, or layout. PDF to Word (a separate tool) attempts to preserve formatting in a .docx file.',
+      },
+      {
+        question: 'Does this work with edit pdf with openoffice alternatives?',
+        answer: 'If you want to edit PDF content in LibreOffice or OpenOffice, extract the text here first, paste it into a new document, and edit it freely — no need to open the PDF in OpenOffice directly.',
+      },
+    ],
+    relatedToolIds: ['pdf-to-images', 'compress-pdf', 'split-pdf', 'merge-pdfs', 'extract-pages', 'add-text-to-pdf'],
+    reviewedAt: '2026-07-12',
+  },
+
+  'add-text-to-pdf': {
+    title: 'Add Text to PDF',
+    seoTitle: 'Add Text to PDF Free Online – Edit PDF, No Upload | opentools',
+    description:
+      'Type text onto any PDF page in your browser. Click to place a text box anywhere. Free alternative to editing PDF with OpenOffice. No upload, no sign-up.',
+    intro: [
+      'Add Text to PDF lets you click anywhere on a PDF page and type — adding annotations, filling in fields that are not form fields, correcting typos in a document, or signing with a typed signature. No software installation needed; everything runs in your browser.',
+      'The tool renders each page using pdf.js and overlays a draggable text box. When you click Apply, pdf-lib embeds the text as a real PDF text element at the position you set, preserving the original page content underneath.',
+      'If you need a free alternative to editing a PDF with OpenOffice or LibreOffice, this tool covers the most common use case: placing typed text at specific positions on a PDF page without converting the document to another format first.',
+    ],
+    steps: [
+      {
+        title: 'Upload the PDF',
+        description: 'Drop your PDF into the tool. Pages are rendered for the editing interface in the browser — no upload occurs.',
+      },
+      {
+        title: 'Click to place a text box',
+        description: 'Click anywhere on the page preview to create a text box. Type your content. Drag the box to reposition it. Set font size and color.',
+      },
+      {
+        title: 'Apply and download',
+        description: 'Click Apply to embed the text layer into the PDF. Download the updated document and open it to verify the text appears correctly.',
+      },
+    ],
+    useCases: [
+      'Fill in a non-interactive PDF form by typing in the blank fields manually.',
+      'Add a typed signature or date to a PDF contract without printing and scanning.',
+      'Annotate a PDF with comments or corrections before returning it to a colleague.',
+      'Add a reference number or title to a PDF that was generated without one.',
+    ],
+    limitations: [
+      'Text is added as a new layer on top of the PDF — it does not edit or delete existing text in the original document.',
+      'Available fonts are limited to those supported by pdf-lib (Helvetica, Times Roman, Courier, and variants). Custom fonts are not currently supported.',
+      'Password-protected PDFs must be unlocked before adding text.',
+    ],
+    faqs: [
+      {
+        question: 'Is this a free alternative to editing PDF with OpenOffice?',
+        answer: 'Yes. For the common task of typing text onto a PDF (filling forms, adding annotations, placing signatures), this tool does it entirely in the browser — no OpenOffice, LibreOffice, or installation required.',
+      },
+      {
+        question: 'Can I add text to any position on the PDF?',
+        answer: 'Yes. Click anywhere on the page to create a text box, then drag it to the exact position you want.',
+      },
+      {
+        question: 'Is my PDF uploaded when I add text?',
+        answer: 'No. The entire editing and PDF assembly runs in your browser using pdf.js and pdf-lib. Your file never leaves your device.',
+      },
+      {
+        question: 'Can I add text to multiple pages?',
+        answer: 'Yes. Navigate between pages in the editor and add text boxes to each page independently before applying.',
+      },
+      {
+        question: 'Can I remove or edit text already in the PDF?',
+        answer: 'No. This tool adds a new text layer on top — it cannot select or modify the original PDF text content. For content removal, use the Redact PDF tool.',
+      },
+    ],
+    relatedToolIds: ['add-text', 'add-watermark-to-pdf', 'merge-pdfs', 'pdf-to-text', 'redact-pdf', 'compress-pdf'],
+    reviewedAt: '2026-07-12',
+  },
+
   // ─── High-traffic tools with fully authored content ───────────────────────
 
   'jpg-to-pdf': {
