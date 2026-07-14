@@ -281,23 +281,27 @@ export default function VideoToolPage({ toolId }: { toolId: string }) {
                   )}
 
                   {isBusy && (
-                    <div className="vload" style={{ marginBottom: '12px' }}>
+                    <div className="vload" role="status" aria-live="polite">
                       <div className="vload__bar-wrap">
                         <div className="vload__bar" style={{ width: `${progress}%` }} />
                       </div>
-                      <p className="vload__label">{progressLabel}{isBusy ? ` · ${progress}%` : ''}</p>
+                      <p className="vload__label">
+                        {progressLabel}{progress > 0 ? ` · ${progress}%` : ''}
+                      </p>
                     </div>
                   )}
 
                   {status === 'error' && error && <p className="video-error">{error}</p>}
 
-                  <div className="controls__actions controls__actions--full">
+                  <div className="video-tool-actions">
                     <button type="button" className="btn btn--dark btn--icon" disabled={isBusy} onClick={handleProcess}>
                       <Lightning size={16} weight="fill" />
-                      {isBusy ? progressLabel || 'Processing…' : op.label}
+                      {isBusy
+                        ? (status === 'loading' ? 'Loading engine…' : 'Processing…')
+                        : op.label}
                     </button>
                     <button type="button" className="btn btn--ghost btn--icon" onClick={clearFile} disabled={isBusy}>
-                      <Trash size={15} /> Clear
+                      <Trash size={15} weight="bold" /> Clear
                     </button>
                   </div>
                 </div>
