@@ -14,6 +14,10 @@ function publicUrl(path: string): string {
 let _instance: FFmpeg | null = null;
 let _loadPromise: Promise<FFmpeg> | null = null;
 
+// Re-export exec helpers for video tools / editor.
+export { deleteQuiet, execAndRead, isFsError, probeHasAudio, writeBytes, writeInputFile } from './ffmpegExec';
+export { toMemfsBytes } from './ffmpegExec';
+
 // Shared loading progress — broadcast to all subscribers
 const _subs = new Set<(pct: number, label: string) => void>();
 let _lastPct = 0;
@@ -121,4 +125,15 @@ export function videoMime(ext: string): string {
 /** Returns true if the singleton is already loaded (no download needed). */
 export function isFFmpegLoaded(): boolean {
   return !!(_instance?.loaded);
+}
+
+/** Terminate a broken worker so the next getFFmpeg() starts fresh. */
+export async function resetFFmpeg(): Promise<void> {
+  if (_instance) {
+    try { _instance.terminate(); } catch { /* ignore */ }
+    _instance = null;
+  }
+  _loadPromise = null;
+  _lastPct = 0;
+  _lastLabel = '';
 }

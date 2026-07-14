@@ -6,7 +6,7 @@ import {
 import {
   DownloadSimple, Image as ImageIcon, Pause, Play, Scissors, TextT, Trash,
 } from '@phosphor-icons/react';
-import { getFFmpeg, isFFmpegLoaded, onFFmpegProgress } from '../../lib/ffmpeg';
+import { getFFmpeg, isFFmpegLoaded, onFFmpegProgress, resetFFmpeg, isFsError } from '../../lib/ffmpeg';
 import { exportProject } from '../../lib/videoEditor/export';
 import {
   createEmptyProject, editorReducer, clipAtTime, sourceTime,
@@ -156,7 +156,7 @@ export function VideoStudio({ initialFile, onRequestNewFile }: VideoStudioProps)
 
   const togglePlay = () => dispatch({ type: 'SET_PLAYING', playing: !project.isPlaying });
 
-  const handleExport = async () => {
+  const handleExport = async (retry = false) => {
     setExportStatus('idle');
     setExportError(null);
     setExportUrl(null);
@@ -184,6 +184,10 @@ export function VideoStudio({ initialFile, onRequestNewFile }: VideoStudioProps)
       setExportLabel('Export complete');
       setExportStatus('done');
     } catch (err) {
+      if (!retry && isFsError(err)) {
+        await resetFFmpeg();
+        return handleExport(true);
+      }
       setExportError(err instanceof Error ? err.message : String(err));
       setExportStatus('error');
     }
@@ -244,7 +248,7 @@ export function VideoStudio({ initialFile, onRequestNewFile }: VideoStudioProps)
               type="button"
               className="btn btn--dark btn--icon"
               disabled={exportStatus === 'loading' || exportStatus === 'processing' || project.clips.length === 0}
-              onClick={handleExport}
+              onClick={() => { void handleExport(); }}
             >
               <DownloadSimple size={16} weight="bold" />
               Export

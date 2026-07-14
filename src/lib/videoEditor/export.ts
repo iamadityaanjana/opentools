@@ -1,9 +1,11 @@
-import { fetchFile } from '@ffmpeg/util';
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import type { EditorProject, ExportSettings, TextLayer, VideoClip } from './types';
 import { videoTracksBottomToTop } from './tracks';
 import { avgSpeedFactor } from './speed';
 import { videoMime } from '../ffmpeg';
+import {
+  deleteQuiet, execAndRead, probeHasAudio, writeBytes, writeInputFile,
+} from '../ffmpegExec';
 
 function safeBlob(raw: Uint8Array, type: string): Blob {
   const copy = new Uint8Array(raw.byteLength);
@@ -56,23 +58,6 @@ function buildClipAudioFilter(
   }
   if (delayMs > 0) chain += `,adelay=${delayMs}|${delayMs}`;
   return `${chain}[${label}]`;
-}
-
-async function probeHasAudio(ffmpeg: FFmpeg, fname: string): Promise<boolean> {
-  const out = `probe_${fname.replace(/[^a-z0-9._-]/gi, '_')}.txt`;
-  try {
-    await ffmpeg.ffprobe([
-      '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index',
-      '-of', 'csv=p=0', fname, '-o', out,
-    ]);
-    const raw = await ffmpeg.readFile(out, 'utf8');
-    const txt = typeof raw === 'string' ? raw : new TextDecoder().decode(raw);
-    return txt.trim().length > 0;
-  } catch {
-    return false;
-  } finally {
-    await ffmpeg.deleteFile(out).catch(() => {});
-  }
 }
 
 async function renderTextLayerPng(text: TextLayer, W: number, H: number): Promise<Uint8Array> {
@@ -141,7 +126,7 @@ export async function exportProject(
     assetIndex.set(asset.id, idx);
     const extIn = inputExt(asset.file, asset.kind);
     const fname = `in${idx}.${extIn}`;
-    await ffmpeg.writeFile(fname, await fetchFile(asset.file));
+    await writeInputFile(ffmpeg, fname, asset.file);
     assetFiles.set(asset.id, fname);
     if (asset.kind === 'image') inputArgs.push('-loop', '1');
     inputArgs.push('-i', fname);
@@ -176,7 +161,7 @@ export async function exportProject(
   let textStep = 0;
   for (const t of project.textLayers) {
     const fname = `text${textStep}.png`;
-    await ffmpeg.writeFile(fname, await renderTextLayerPng(t, W, H));
+    await writeBytes(ffmpeg, fname, await renderTextLayerPng(t, W, H));
     assetFiles.set(fname, fname);
     const textInputIdx = assets.length + textStep;
     inputArgs.push('-loop', '1', '-i', fname);
@@ -251,32 +236,18 @@ export async function exportProject(
   }
   args.push(outName);
 
-  const logs: string[] = [];
-  const onLog = ({ message }: { message: string }) => { logs.push(message); };
   const onProg = ({ progress }: { progress: number }) => onProgress(Math.min(98, Math.round(progress * 100)));
-
-  ffmpeg.on('log', onLog);
   ffmpeg.on('progress', onProg);
-  const code = await ffmpeg.exec(args);
-  ffmpeg.off('log', onLog);
-  ffmpeg.off('progress', onProg);
-
-  if (code !== 0) {
-    const tail = logs.filter((l) => l.trim()).slice(-6).join(' | ');
-    throw new Error(tail ? `Export failed: ${tail}` : `Export failed (FFmpeg exit ${code}).`);
-  }
-
   let raw: Uint8Array;
   try {
-    raw = await ffmpeg.readFile(outName) as Uint8Array;
-  } catch {
-    throw new Error('Export finished but output file was missing. Try a shorter clip or fewer layers.');
+    raw = await execAndRead(ffmpeg, args, outName, 'Export failed — try a shorter clip with fewer layers.');
+  } finally {
+    ffmpeg.off('progress', onProg);
   }
 
   const blob = safeBlob(raw, videoMime(ext));
 
-  await ffmpeg.deleteFile(outName).catch(() => {});
-  for (const f of assetFiles.values()) await ffmpeg.deleteFile(f).catch(() => {});
+  await deleteQuiet(ffmpeg, outName, ...assetFiles.values());
 
   onProgress(100);
   return blob;

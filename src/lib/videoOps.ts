@@ -1,8 +1,10 @@
 import type { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile } from '@ffmpeg/util';
-import { buildAtempoChain, videoMime } from './ffmpeg';
+import {
+  buildAtempoChain, videoMime,
+  deleteQuiet, execAndRead, probeHasAudio, writeInputFile,
+} from './ffmpeg';
 
-/** Copy FFmpeg output (may be backed by SharedArrayBuffer) into a safe Blob. */
+/** Copy FFmpeg output into a safe Blob. */
 function toBlob(raw: Uint8Array, type: string): Blob {
   const copy = new Uint8Array(raw.byteLength);
   copy.set(raw);
@@ -57,16 +59,16 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
     ],
     async run(ffmpeg, file, params) {
       const e = ext(file);
+      const inPath = `in.${e}`;
+      const outPath = `out.${e}`;
       const start = Number(params.start) || 0;
       const end = Number(params.end) || 0;
-      await ffmpeg.writeFile(`in.${e}`, await fetchFile(file));
+      await writeInputFile(ffmpeg, inPath, file);
       const args = ['-ss', String(start)];
       if (end > start) args.push('-to', String(end));
-      args.push('-i', `in.${e}`, '-c', 'copy', `out.${e}`);
-      await ffmpeg.exec(args);
-      const raw = await ffmpeg.readFile(`out.${e}`) as Uint8Array;
-      const data = new Uint8Array(raw.buffer instanceof ArrayBuffer ? raw.buffer : raw.buffer.slice(0));
-      await Promise.all([ffmpeg.deleteFile(`in.${e}`), ffmpeg.deleteFile(`out.${e}`)]);
+      args.push('-i', inPath, '-c', 'copy', outPath);
+      const raw = await execAndRead(ffmpeg, args, outPath, 'Trim failed — try different start/end times.');
+      await deleteQuiet(ffmpeg, inPath, outPath);
       return { blob: toBlob(raw, videoMime(e)), filename: `${base(file)}-trimmed.${e}`, mimeType: videoMime(e) };
     },
   },
@@ -91,15 +93,18 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
     ],
     async run(ffmpeg, file, params) {
       const e = ext(file);
+      const inPath = `in.${e}`;
+      const outPath = `out.${e}`;
       const speed = parseFloat(String(params.speed)) || 1;
       const pts = (1 / speed).toFixed(6);
-      await ffmpeg.writeFile(`in.${e}`, await fetchFile(file));
+      await writeInputFile(ffmpeg, inPath, file);
+      const hasAudio = await probeHasAudio(ffmpeg, inPath);
       const vf = `setpts=${pts}*PTS`;
-      const af = buildAtempoChain(speed);
-      await ffmpeg.exec(['-i', `in.${e}`, '-vf', vf, '-af', af, `out.${e}`]);
-      const raw = await ffmpeg.readFile(`out.${e}`) as Uint8Array;
-      const data = new Uint8Array(raw.buffer instanceof ArrayBuffer ? raw.buffer : raw.buffer.slice(0));
-      await Promise.all([ffmpeg.deleteFile(`in.${e}`), ffmpeg.deleteFile(`out.${e}`)]);
+      const args = hasAudio
+        ? ['-i', inPath, '-vf', vf, '-af', buildAtempoChain(speed), outPath]
+        : ['-i', inPath, '-vf', vf, '-an', outPath];
+      const raw = await execAndRead(ffmpeg, args, outPath, 'Speed change failed — try a shorter clip.');
+      await deleteQuiet(ffmpeg, inPath, outPath);
       return { blob: toBlob(raw, videoMime(e)), filename: `${base(file)}-${speed}x.${e}`, mimeType: videoMime(e) };
     },
   },
@@ -112,11 +117,14 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
     controls: [],
     async run(ffmpeg, file, _params) {
       const e = ext(file);
-      await ffmpeg.writeFile(`in.${e}`, await fetchFile(file));
-      await ffmpeg.exec(['-i', `in.${e}`, '-an', '-c:v', 'copy', `out.${e}`]);
-      const raw = await ffmpeg.readFile(`out.${e}`) as Uint8Array;
-      const data = new Uint8Array(raw.buffer instanceof ArrayBuffer ? raw.buffer : raw.buffer.slice(0));
-      await Promise.all([ffmpeg.deleteFile(`in.${e}`), ffmpeg.deleteFile(`out.${e}`)]);
+      const inPath = `in.${e}`;
+      const outPath = `out.${e}`;
+      await writeInputFile(ffmpeg, inPath, file);
+      const raw = await execAndRead(
+        ffmpeg, ['-i', inPath, '-an', '-c:v', 'copy', outPath], outPath,
+        'Mute failed — the file may not contain a video stream.',
+      );
+      await deleteQuiet(ffmpeg, inPath, outPath);
       return { blob: toBlob(raw, videoMime(e)), filename: `${base(file)}-muted.${e}`, mimeType: videoMime(e) };
     },
   },
@@ -138,11 +146,20 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
     ],
     async run(ffmpeg, file, params) {
       const e = ext(file);
-      await ffmpeg.writeFile(`in.${e}`, await fetchFile(file));
-      await ffmpeg.exec(['-i', `in.${e}`, '-vn', '-acodec', 'libmp3lame', '-q:a', String(params.quality ?? 2), 'out.mp3']);
-      const raw = await ffmpeg.readFile('out.mp3') as Uint8Array;
-      const data = raw.slice() as Uint8Array<ArrayBuffer>;
-      await Promise.all([ffmpeg.deleteFile(`in.${e}`), ffmpeg.deleteFile('out.mp3')]);
+      const inPath = `in.${e}`;
+      const outPath = 'out.mp3';
+      await writeInputFile(ffmpeg, inPath, file);
+      if (!(await probeHasAudio(ffmpeg, inPath))) {
+        await deleteQuiet(ffmpeg, inPath);
+        throw new Error('This video has no audio track to extract.');
+      }
+      const raw = await execAndRead(
+        ffmpeg,
+        ['-i', inPath, '-vn', '-acodec', 'libmp3lame', '-q:a', String(params.quality ?? 2), outPath],
+        outPath,
+        'Audio extraction failed — try a shorter clip or a different video format.',
+      );
+      await deleteQuiet(ffmpeg, inPath, outPath);
       return { blob: toBlob(raw, 'audio/mpeg'), filename: `${base(file)}-audio.mp3`, mimeType: 'audio/mpeg' };
     },
   },
@@ -163,19 +180,19 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
       },
     ],
     async run(ffmpeg, file, params) {
-      const e = ext(file) === 'webm' ? 'mp4' : ext(file);
-      await ffmpeg.writeFile(`in.${ext(file)}`, await fetchFile(file));
-      await ffmpeg.exec([
-        '-i', `in.${ext(file)}`,
-        '-c:v', 'libx264', '-crf', String(params.quality ?? 28),
-        '-preset', 'fast',
-        '-c:a', 'aac', '-b:a', '128k',
-        `out.${e}`,
-      ]);
-      const raw = await ffmpeg.readFile(`out.${e}`) as Uint8Array;
-      const data = raw.slice() as Uint8Array<ArrayBuffer>;
-      await Promise.all([ffmpeg.deleteFile(`in.${ext(file)}`), ffmpeg.deleteFile(`out.${e}`)]);
-      return { blob: toBlob(raw, videoMime(e)), filename: `${base(file)}-compressed.${e}`, mimeType: videoMime(e) };
+      const inExt = ext(file);
+      const outExt = inExt === 'webm' ? 'mp4' : inExt;
+      const inPath = `in.${inExt}`;
+      const outPath = `out.${outExt}`;
+      await writeInputFile(ffmpeg, inPath, file);
+      const hasAudio = await probeHasAudio(ffmpeg, inPath);
+      const args = ['-i', inPath, '-c:v', 'libx264', '-crf', String(params.quality ?? 28), '-preset', 'fast', '-pix_fmt', 'yuv420p'];
+      if (hasAudio) args.push('-c:a', 'aac', '-b:a', '128k');
+      else args.push('-an');
+      args.push(outPath);
+      const raw = await execAndRead(ffmpeg, args, outPath, 'Compress failed — try a shorter clip.');
+      await deleteQuiet(ffmpeg, inPath, outPath);
+      return { blob: toBlob(raw, videoMime(outExt)), filename: `${base(file)}-compressed.${outExt}`, mimeType: videoMime(outExt) };
     },
   },
 
@@ -196,14 +213,21 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
     async run(ffmpeg, file, params) {
       const e = ext(file);
       const fmt = String(params.format || 'mp4');
-      await ffmpeg.writeFile(`in.${e}`, await fetchFile(file));
+      const inPath = `in.${e}`;
+      const outPath = `out.${fmt}`;
+      await writeInputFile(ffmpeg, inPath, file);
+      const hasAudio = await probeHasAudio(ffmpeg, inPath);
       const args = fmt === 'webm'
-        ? ['-i', `in.${e}`, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-c:a', 'libopus', 'out.webm']
-        : ['-i', `in.${e}`, '-c:v', 'libx264', '-crf', '22', '-c:a', 'aac', 'out.mp4'];
-      await ffmpeg.exec(args);
-      const raw = await ffmpeg.readFile(`out.${fmt}`) as Uint8Array;
-      const data = raw.slice() as Uint8Array<ArrayBuffer>;
-      await Promise.all([ffmpeg.deleteFile(`in.${e}`), ffmpeg.deleteFile(`out.${fmt}`)]);
+        ? ['-i', inPath, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-pix_fmt', 'yuv420p']
+        : ['-i', inPath, '-c:v', 'libx264', '-crf', '22', '-pix_fmt', 'yuv420p'];
+      if (hasAudio) {
+        args.push('-c:a', fmt === 'webm' ? 'libopus' : 'aac');
+      } else {
+        args.push('-an');
+      }
+      args.push(outPath);
+      const raw = await execAndRead(ffmpeg, args, outPath, 'Convert failed — try a shorter clip.');
+      await deleteQuiet(ffmpeg, inPath, outPath);
       return { blob: toBlob(raw, videoMime(fmt)), filename: `${base(file)}.${fmt}`, mimeType: videoMime(fmt) };
     },
   },
@@ -225,13 +249,17 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
     ],
     async run(ffmpeg, file, params) {
       const e = ext(file);
-      await ffmpeg.writeFile(`in.${e}`, await fetchFile(file));
+      const inPath = `in.${e}`;
+      const outPath = `out.${e}`;
+      await writeInputFile(ffmpeg, inPath, file);
       const rot = String(params.rotation);
       const vf = rot === '180' ? 'hflip,vflip' : `transpose=${rot}`;
-      await ffmpeg.exec(['-i', `in.${e}`, '-vf', vf, '-c:a', 'copy', `out.${e}`]);
-      const raw = await ffmpeg.readFile(`out.${e}`) as Uint8Array;
-      const data = raw.slice() as Uint8Array<ArrayBuffer>;
-      await Promise.all([ffmpeg.deleteFile(`in.${e}`), ffmpeg.deleteFile(`out.${e}`)]);
+      const hasAudio = await probeHasAudio(ffmpeg, inPath);
+      const args = hasAudio
+        ? ['-i', inPath, '-vf', vf, '-c:a', 'aac', '-b:a', '128k', outPath]
+        : ['-i', inPath, '-vf', vf, '-an', outPath];
+      const raw = await execAndRead(ffmpeg, args, outPath, 'Rotate failed — try a shorter clip.');
+      await deleteQuiet(ffmpeg, inPath, outPath);
       const label = rot === '1' ? '90cw' : rot === '2' ? '90ccw' : '180';
       return { blob: toBlob(raw, videoMime(e)), filename: `${base(file)}-${label}.${e}`, mimeType: videoMime(e) };
     },
@@ -250,16 +278,21 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
     ],
     async run(ffmpeg, file, params) {
       const e = ext(file);
+      const inPath = `in.${e}`;
+      const outPath = 'out.gif';
       const start = Number(params.start) || 0;
       const dur = Math.min(Number(params.duration) || 5, 30);
       const fps = Number(params.fps) || 15;
       const w = Number(params.width) || 480;
-      await ffmpeg.writeFile(`in.${e}`, await fetchFile(file));
+      await writeInputFile(ffmpeg, inPath, file);
       const vf = `fps=${fps},scale=${w}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`;
-      await ffmpeg.exec(['-ss', String(start), '-t', String(dur), '-i', `in.${e}`, '-vf', vf, '-loop', '0', 'out.gif']);
-      const raw = await ffmpeg.readFile('out.gif') as Uint8Array;
-      const data = raw.slice() as Uint8Array<ArrayBuffer>;
-      await Promise.all([ffmpeg.deleteFile(`in.${e}`), ffmpeg.deleteFile('out.gif')]);
+      const raw = await execAndRead(
+        ffmpeg,
+        ['-ss', String(start), '-t', String(dur), '-i', inPath, '-vf', vf, '-an', '-loop', '0', outPath],
+        outPath,
+        'GIF conversion failed — try a shorter duration or smaller width.',
+      );
+      await deleteQuiet(ffmpeg, inPath, outPath);
       return { blob: toBlob(raw, 'image/gif'), filename: `${base(file)}.gif`, mimeType: 'image/gif' };
     },
   },
@@ -272,11 +305,15 @@ export const VIDEO_OPS: Record<string, VideoOp> = {
     controls: [],
     async run(ffmpeg, file, _params) {
       const e = ext(file);
-      await ffmpeg.writeFile(`in.${e}`, await fetchFile(file));
-      await ffmpeg.exec(['-i', `in.${e}`, '-vf', 'reverse', '-af', 'areverse', `out.${e}`]);
-      const raw = await ffmpeg.readFile(`out.${e}`) as Uint8Array;
-      const data = new Uint8Array(raw.buffer instanceof ArrayBuffer ? raw.buffer : raw.buffer.slice(0));
-      await Promise.all([ffmpeg.deleteFile(`in.${e}`), ffmpeg.deleteFile(`out.${e}`)]);
+      const inPath = `in.${e}`;
+      const outPath = `out.${e}`;
+      await writeInputFile(ffmpeg, inPath, file);
+      const hasAudio = await probeHasAudio(ffmpeg, inPath);
+      const args = hasAudio
+        ? ['-i', inPath, '-vf', 'reverse', '-af', 'areverse', outPath]
+        : ['-i', inPath, '-vf', 'reverse', '-an', outPath];
+      const raw = await execAndRead(ffmpeg, args, outPath, 'Reverse failed — clip may be too long for browser memory.');
+      await deleteQuiet(ffmpeg, inPath, outPath);
       return { blob: toBlob(raw, videoMime(e)), filename: `${base(file)}-reversed.${e}`, mimeType: videoMime(e) };
     },
   },

@@ -7,7 +7,7 @@ import { TOOL_BY_ID, CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL } from '../tools/ca
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
 import { getToolPageContent } from '../content/tool-page-content';
-import { getFFmpeg, onFFmpegProgress, isFFmpegLoaded } from '../lib/ffmpeg';
+import { getFFmpeg, isFFmpegLoaded, onFFmpegProgress, resetFFmpeg, isFsError } from '../lib/ffmpeg';
 import { VIDEO_OPS } from '../lib/videoOps';
 import type { VideoControl } from '../lib/videoOps';
 
@@ -116,7 +116,7 @@ export default function VideoToolPage({ toolId }: { toolId: string }) {
     if (f && (f.type.startsWith('video/') || /\.(mp4|webm|mov|avi|mkv)$/i.test(f.name))) acceptFile(f);
   }, [acceptFile]);
 
-  const handleProcess = async () => {
+  const handleProcess = async (retry = false) => {
     if (!file || !op) return;
     setError(null);
     setResult(null);
@@ -155,6 +155,10 @@ export default function VideoToolPage({ toolId }: { toolId: string }) {
         ffmpeg.off('progress', progressHandler);
       }
     } catch (err) {
+      if (!retry && isFsError(err)) {
+        await resetFFmpeg();
+        return handleProcess(true);
+      }
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
@@ -294,7 +298,7 @@ export default function VideoToolPage({ toolId }: { toolId: string }) {
                   {status === 'error' && error && <p className="video-error">{error}</p>}
 
                   <div className="video-tool-actions">
-                    <button type="button" className="btn btn--dark btn--icon" disabled={isBusy} onClick={handleProcess}>
+                    <button type="button" className="btn btn--dark btn--icon" disabled={isBusy} onClick={() => { void handleProcess(); }}>
                       <Lightning size={16} weight="fill" />
                       {isBusy
                         ? (status === 'loading' ? 'Loading engine…' : 'Processing…')
