@@ -94,6 +94,8 @@ export default function VideoToolPage({ toolId }: { toolId: string }) {
     setError(null);
     setStatus('idle');
     setProgress(0);
+    // Warm FFmpeg in the background so Process starts faster.
+    if (!isFFmpegLoaded()) void getFFmpeg().catch(() => {});
   }, []);
 
   const clearFile = useCallback(() => {
