@@ -25,6 +25,21 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  async headers() {
+    const ffmpegAssets = [
+      { key: 'Content-Type', value: 'application/wasm' },
+      { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+    ];
+    const ffmpegJs = [
+      { key: 'Content-Type', value: 'text/javascript' },
+      { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+    ];
+    return [
+      { source: '/ffmpeg-core.wasm', headers: ffmpegAssets },
+      { source: '/ffmpeg-core.js', headers: ffmpegJs },
+      { source: '/ffmpeg-worker.mjs', headers: ffmpegJs },
+    ];
+  },
   async redirects() {
     return [
       {

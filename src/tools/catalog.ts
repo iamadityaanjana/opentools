@@ -16,11 +16,15 @@ import {
   Gif,
   Palette,
   DotsThreeCircle,
+  VideoCamera,
+  Scissors,
+  SpeakerSlash,
+  MusicNote,
 } from '@phosphor-icons/react/dist/ssr';
 import type { Icon } from '@phosphor-icons/react';
 
 export type ToolStatus = 'live' | 'soon';
-export type ToolGroup = 'image' | 'pdf';
+export type ToolGroup = 'image' | 'pdf' | 'video';
 
 export interface ToolCategory {
   id: string;
@@ -67,6 +71,11 @@ export const CATEGORIES: ToolCategory[] = [
   { id: 'gif', label: 'GIF Tools', icon: Gif, group: 'image' },
   { id: 'color', label: 'Color Tools', icon: Palette, group: 'image' },
   { id: 'misc', label: 'Miscellaneous', icon: DotsThreeCircle, group: 'image' },
+  // Video categories
+  { id: 'video-edit', label: 'Edit Video', icon: Scissors, group: 'video' },
+  { id: 'video-convert', label: 'Convert & Export', icon: ArrowsLeftRight, group: 'video' },
+  { id: 'video-optimize', label: 'Optimize', icon: FileZip, group: 'video' },
+  { id: 'video-extract', label: 'Extract', icon: MusicNote, group: 'video' },
 ];
 
 export const CATEGORY_BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
@@ -75,10 +84,12 @@ export const CATEGORY_BY_ID = new Map(CATEGORIES.map((c) => [c.id, c]));
 export const GROUP_HOME: Record<ToolGroup, string> = {
   image: '/image',
   pdf: '/pdf',
+  video: '/video',
 };
 export const GROUP_LABEL: Record<ToolGroup, string> = {
   image: 'Image tools',
   pdf: 'PDF tools',
+  video: 'Video tools',
 };
 
 export function categoriesForGroup(group: ToolGroup): ToolCategory[] {
@@ -273,6 +284,26 @@ const SEED: Record<string, ToolSeed[]> = {
     ['Change Background Color'],
     ['Image Comparator'],
   ],
+
+  // ── Video tools ────────────────────────────────────────────────────────────
+  'video-edit': [
+    ['Video Editor', 'live', '/tools/video-editor', 'Trim, speed, rotate, and mute — all in one minimal browser-based editor.'],
+    ['Trim Video', 'live', '/tools/trim-video', 'Cut a video to a specific start and end time. Fast stream-copy — no re-encode.'],
+    ['Change Video Speed', 'live', '/tools/change-video-speed', 'Speed up or slow down a video from 0.25× to 4×.'],
+    ['Mute Video', 'live', '/tools/mute-video', 'Remove the audio track from a video instantly. Stream copy — very fast.'],
+    ['Rotate Video', 'live', '/tools/rotate-video', 'Rotate a video 90°, 180°, or 270°.'],
+    ['Reverse Video', 'live', '/tools/reverse-video', 'Play a video backwards. Great for fun social clips.'],
+  ],
+  'video-convert': [
+    ['Convert Video', 'live', '/tools/convert-video', 'Convert between MP4 (H.264) and WebM (VP9) formats in your browser.'],
+    ['Video to GIF', 'live', '/tools/video-to-gif', 'Convert a video clip to an optimised animated GIF with palette dithering.'],
+  ],
+  'video-optimize': [
+    ['Compress Video', 'live', '/tools/compress-video', 'Reduce video file size with H.264 re-encoding. Choose quality vs size.'],
+  ],
+  'video-extract': [
+    ['Extract Audio', 'live', '/tools/extract-audio', 'Save the audio track from a video as an MP3 file.'],
+  ],
 };
 
 export const TOOLS: Tool[] = Object.entries(SEED).flatMap(([categoryId, seeds]) =>
@@ -407,6 +438,17 @@ const CUSTOM: Record<string, { route: string }> = {
   'batch-rename': { route: '/tools/batch-rename' },
   'live-photo-extractor': { route: '/tools/live-photo-extractor' },
   'image-comparator': { route: '/tools/image-comparator' },
+  // Video tools
+  'trim-video': { route: '/tools/trim-video' },
+  'change-video-speed': { route: '/tools/change-video-speed' },
+  'mute-video': { route: '/tools/mute-video' },
+  'extract-audio': { route: '/tools/extract-audio' },
+  'compress-video': { route: '/tools/compress-video' },
+  'convert-video': { route: '/tools/convert-video' },
+  'rotate-video': { route: '/tools/rotate-video' },
+  'video-to-gif': { route: '/tools/video-to-gif' },
+  'reverse-video': { route: '/tools/reverse-video' },
+  'video-editor': { route: '/tools/video-editor' },
 };
 
 const PDF_LIVE_BLURBS: Record<string, string> = {

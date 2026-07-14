@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, ImageSquare, FilePdf, DotsThreeCircle } from '@phosphor-icons/react';
+import { ArrowRight, ImageSquare, FilePdf, VideoCamera } from '@phosphor-icons/react';
 import { usePostHog } from '@posthog/react';
 import { PlusGrid } from '../components/PlusGrid';
 import { BlinkingCursor } from '../components/Thinking';
@@ -49,9 +49,9 @@ export default function Landing({ children }: { children?: ReactNode }) {
           <Link className="btn btn--icon" href={GROUP_HOME.pdf} onClick={() => posthog?.capture('hero_cta_clicked', { cta_type: 'pdf_tools' })}>
             <FilePdf size={16} weight="fill" /> PDF tools
           </Link>
-          <button className="btn btn--soon btn--icon" disabled>
-            <DotsThreeCircle size={16} /> Other <span className="soon-tag">coming soon</span>
-          </button>
+          <Link className="btn btn--icon" href="/video" onClick={() => posthog?.capture('hero_cta_clicked', { cta_type: 'video_tools' })}>
+            <VideoCamera size={16} weight="fill" /> Video tools
+          </Link>
         </div>
       </section>
       {children}

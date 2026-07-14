@@ -9,6 +9,7 @@ import {
   FilePdf,
   ImageSquare,
   MagnifyingGlass,
+  VideoCamera,
 } from '@phosphor-icons/react';
 import { usePostHog } from '@posthog/react';
 import { TopNav } from '../components/TopNav';
@@ -67,7 +68,13 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
   const soonCount = visibleTools.length - liveCount;
   const title = GROUP_LABEL[group];
   const isImage = group === 'image';
-  const HeroIcon = isImage ? ImageSquare : FilePdf;
+  const isVideo = group === 'video';
+  const HeroIcon = isImage ? ImageSquare : isVideo ? VideoCamera : FilePdf;
+  const heroSub = isImage
+    ? 'Convert, resize, compress, edit, organize, and inspect images—entirely in your browser.'
+    : isVideo
+      ? 'Trim, speed, mute, compress, convert, and edit videos locally with FFmpeg.wasm — no upload required.'
+      : 'Create, convert, and extract PDFs locally without uploading your files.';
 
   // Deep-link support: a hash like #category-pdf-security (e.g. from a tool
   // breadcrumb or the category chips) opens that collapsed section and scrolls
@@ -111,11 +118,7 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
             {liveCount} live{soonCount > 0 ? ` · ${soonCount} coming soon` : ''}
           </div>
           <h1 className="tools-title">{title}</h1>
-          <p className="tools-sub">
-            {isImage
-              ? 'Convert, resize, compress, edit, organize, and inspect images—entirely in your browser.'
-              : 'Create, convert, and extract PDFs locally without uploading your files.'}
-          </p>
+          <p className="tools-sub">{heroSub}</p>
           <div className="searchbar">
             <MagnifyingGlass className="searchbar__icon" size={18} />
             <input
@@ -127,6 +130,25 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
             />
           </div>
         </section>
+
+        {isVideo && (
+          <section className="video-hub__feature" aria-label="Featured video editor">
+            <div className="video-hub__feature-inner">
+              <div className="video-hub__feature-icon" aria-hidden>
+                <VideoCamera size={28} weight="fill" />
+              </div>
+              <div className="video-hub__feature-copy">
+                <h2 className="video-hub__feature-title">Video Editor</h2>
+                <p className="video-hub__feature-desc">
+                  Trim, speed, rotate, and mute in one timeline editor. Drag handles, preview waveforms, export in seconds.
+                </p>
+              </div>
+              <Link className="btn btn--dark" href="/tools/video-editor">
+                Open editor
+              </Link>
+            </div>
+          </section>
+        )}
 
         {!normalizedQuery && categories.length > 1 && (
           <nav className="catnav" aria-label={`${title} categories`}>

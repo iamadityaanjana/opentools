@@ -8,7 +8,7 @@
   },
   "scripts": {
     "predev": "node scripts/copy-pdf-worker.mjs",
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "prebuild": "node scripts/copy-pdf-worker.mjs",
     "build": "next build --webpack",
     "typecheck": "tsc --noEmit",
@@ -20,6 +20,9 @@
     "indexnow": "node scripts/submit-indexnow.mjs"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@fontsource/instrument-sans": "^5.2.8",
     "@fontsource/instrument-serif": "^5.2.8",
     "@jsquash/avif": "^2.1.1",

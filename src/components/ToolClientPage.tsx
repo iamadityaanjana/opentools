@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { ComponentType, ReactNode } from 'react';
 import { DotsThinking } from './Thinking';
+import { VIDEO_TOOL_IDS } from '../lib/videoOps';
 
 const loading = () => (
   <div className="page page--tool">
@@ -17,6 +18,8 @@ const RenameImagesPage = dynamic(() => import('../screens/RenameImagesPage'), { 
 const BatchRenamePage = dynamic(() => import('../screens/BatchRenamePage'), { loading });
 const LivePhotoPage = dynamic(() => import('../screens/LivePhotoPage'), { loading });
 const ImageComparatorPage = dynamic(() => import('../screens/ImageComparatorPage'), { loading });
+const VideoToolPage = dynamic(() => import('../screens/VideoToolPage'), { loading });
+const VideoEditorPage = dynamic(() => import('../screens/VideoEditorPage'), { loading });
 
 const CUSTOM_PAGES: Record<string, ComponentType<{ children?: ReactNode }>> = {
   'color-picker': ColorPickerPage,
@@ -28,6 +31,8 @@ const CUSTOM_PAGES: Record<string, ComponentType<{ children?: ReactNode }>> = {
 };
 
 export function ToolClientPage({ toolId, children }: { toolId: string; children?: ReactNode }) {
+  if (toolId === 'video-editor') return <VideoEditorPage />;
+  if (VIDEO_TOOL_IDS.includes(toolId)) return <VideoToolPage toolId={toolId} />;
   const CustomPage = CUSTOM_PAGES[toolId];
   if (CustomPage) return <CustomPage>{children}</CustomPage>;
   return <ToolRunner toolId={toolId}>{children}</ToolRunner>;

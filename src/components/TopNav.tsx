@@ -36,6 +36,8 @@ function OtherMenu() {
         <ul className="dropdown__list">
           <li><Link className="megalink" href="/image">All image tools</Link></li>
           <li><Link className="megalink" href="/pdf">All PDF tools</Link></li>
+          <li><Link className="megalink" href="/video">All video tools</Link></li>
+          <li><Link className="megalink" href="/tools/video-editor">Video editor</Link></li>
           <li><Link className="megalink" href="/tools/color-picker">Color Picker</Link></li>
           <li><Link className="megalink" href="/tools/view-exif-data">View EXIF Data</Link></li>
           <li><Link className="megalink" href="/guides">Guides</Link></li>
@@ -109,6 +111,9 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
             <ToolMenu label="Resize & crop" toolIds={['resize-image', 'crop-image', 'rotate-image', 'flip-image', 'change-canvas-size']} />
             <ToolMenu label="Compress" toolIds={['compress-jpg', 'compress-png', 'compress-webp', 'batch-compress-images']} />
             <ToolMenu label="PDF tools" toolIds={['merge-pdfs', 'split-pdf', 'compress-pdf', 'pdf-to-jpg', 'images-to-pdf', 'delete-pages', 'rearrange-pages', 'pdf-to-text']} />
+            <div className="nav__item">
+              <Link className="nav__trigger nav__trigger--link" href="/video">Video tools</Link>
+            </div>
             <OtherMenu />
             <GitHubButton />
             <BookCall />
