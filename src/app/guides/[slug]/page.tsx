@@ -6,9 +6,7 @@ import { TOOL_BY_ID } from '../../../tools/catalog';
 import { TopNav } from '../../../components/TopNav';
 import { SiteFooter } from '../../../components/SiteFooter';
 import { TrackedToolLink } from '../../../components/TrackedToolLink';
-import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../../lib/seo';
-
-const SITE_URL = 'https://www.opentools.fun';
+import { SITE_URL } from '../../../lib/seo';
 
 type ArticlePageProps = {
   params: Promise<{ slug: string }>;
@@ -25,6 +23,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const article = ARTICLE_BY_SLUG.get(slug);
   if (!article) return {};
   const canonical = `/guides/${article.slug}`;
+  const ogImage = `${SITE_URL}${canonical}/opengraph-image`;
   return {
     title: article.title,
     description: article.description,
@@ -37,13 +36,14 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       description: article.description,
       publishedTime: article.publishedAt,
       modifiedTime: article.updatedAt,
-      images: [{ ...DEFAULT_OG_IMAGE, alt: article.title }],
+      authors: [`${SITE_URL}/methodology`],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: article.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: article.title,
       description: article.description,
-      images: [DEFAULT_TWITTER_IMAGE],
+      images: [ogImage],
     },
   };
 }
@@ -66,16 +66,29 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         headline: article.title,
         description: article.description,
         url: canonical,
-        image: `${SITE_URL}/opengraph-image`,
+        image: `${canonical}/opengraph-image`,
         datePublished: article.publishedAt,
         dateModified: article.updatedAt,
+        wordCount: article.sections.reduce(
+          (total, section) => total + section.paragraphs.join(' ').split(/\s+/).filter(Boolean).length,
+          0,
+        ),
+        timeRequired: `PT${article.readingMinutes}M`,
         author: { '@type': 'Organization', name: 'opentools editorial', url: `${SITE_URL}/methodology` },
         publisher: { '@id': `${SITE_URL}/#organization` },
-        mainEntityOfPage: canonical,
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+        mainEntityOfPage: { '@id': `${canonical}#webpage` },
+        breadcrumb: { '@id': `${canonical}#breadcrumb` },
+        citation: article.sources.map((source) => ({
+          '@type': 'CreativeWork',
+          name: source.title,
+          url: source.url,
+        })),
         inLanguage: 'en',
       },
       {
         '@type': 'BreadcrumbList',
+        '@id': `${canonical}#breadcrumb`,
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
           { '@type': 'ListItem', position: 2, name: 'Guides', item: `${SITE_URL}/guides` },

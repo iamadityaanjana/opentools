@@ -5,7 +5,7 @@ export const DEFAULT_OG_IMAGE = {
   url: '/opengraph-image',
   width: 1200,
   height: 630,
-  alt: 'opentools browser-based image and PDF tools',
+  alt: 'opentools browser-based image, PDF and video tools',
 };
 
 export const DEFAULT_TWITTER_IMAGE = '/opengraph-image';
@@ -32,14 +32,40 @@ export function toolTitle(toolName: string, override?: string): string {
   return `${base} | ${BRAND}`;
 }
 
+const MAX_DESCRIPTION = 160;
+
+/** Trim to a length limit on a word boundary, without leaving dangling punctuation. */
+function trimToLength(value: string, limit: number): string {
+  if (value.length <= limit) return value;
+  const cut = value.slice(0, limit);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\u2014-]+$/, '')}…`;
+}
+
 /**
- * Generate an SEO-optimised meta description (target 145–160 chars).
- * Front-load the primary keyword and privacy/free differentiators.
+ * Generate an SEO-optimised meta description (target 140–160 chars).
+ *
+ * The tool blurb always leads, because it's the only per-tool copy that is
+ * guaranteed unique — falling back to a shared template would give dozens of
+ * pages identical meta descriptions. Differentiator clauses are appended one at
+ * a time only until the description is long enough to be useful in the SERP.
  */
 export function toolDescription(toolName: string, blurb: string, isPdf: boolean): string {
-  const fileType = isPdf ? 'PDF' : 'image';
-  const action = blurb.length >= 80 ? blurb : `${blurb} Runs entirely in your browser — no uploads, no account.`;
-  if (action.length >= 130 && action.length <= 165) return action;
-  // Fallback generic but keyword-rich
-  return `Free ${toolName} tool. Works entirely in your browser — no ${fileType} upload needed, no sign-up, no watermark. Fast, private, and always free.`;
+  const fileType = isPdf ? 'PDF' : 'file';
+  const lead = (blurb || `Free ${toolName} tool.`).trim().replace(/\s+/g, ' ');
+  const clauses = [
+    'Runs entirely in your browser.',
+    `No ${fileType} upload, no sign-up.`,
+    'No watermark, always free.',
+  ];
+
+  let description = /[.!?…]$/.test(lead) ? lead : `${lead}.`;
+  for (const clause of clauses) {
+    if (description.length >= 140) break;
+    const next = `${description} ${clause}`;
+    if (next.length > MAX_DESCRIPTION) break;
+    description = next;
+  }
+
+  return trimToLength(description, MAX_DESCRIPTION);
 }

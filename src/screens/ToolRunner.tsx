@@ -718,7 +718,9 @@ export default function ToolRunner({ toolId, children }: { toolId: string; child
       <main>
       <div className="tool-workspace">
 
-      <nav className="crumbs crumbs--sub">
+      <nav className="crumbs crumbs--sub" aria-label="Breadcrumb">
+        <Link className="crumbs__link" href="/">Home</Link>
+        <span className="crumbs__sep">/</span>
         <Link className="crumbs__link" href={GROUP_HOME[cat.group]}>{GROUP_LABEL[cat.group]}</Link>
         <span className="crumbs__sep">/</span>
         <Link className="crumbs__link" href={`${GROUP_HOME[cat.group]}#category-${tool.categoryId}`}>{cat.label}</Link>

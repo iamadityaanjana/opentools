@@ -1,11 +1,14 @@
 import Link from 'next/link';
 import { getToolPageContent } from '../content/tool-page-content';
-import { TOOL_BY_ID } from '../tools/catalog';
+import {
+  CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL, TOOL_BY_ID,
+} from '../tools/catalog';
 
 export function ToolSeoContent({ toolId }: { toolId: string }) {
   const tool = TOOL_BY_ID.get(toolId);
   if (!tool) return null;
   const content = getToolPageContent(tool);
+  const category = CATEGORY_BY_ID.get(tool.categoryId);
 
   const related = content.relatedToolIds
     .map((id) => TOOL_BY_ID.get(id))
@@ -26,7 +29,7 @@ export function ToolSeoContent({ toolId }: { toolId: string }) {
           </>
         ) : null}
 
-        <h2>How to use {content.title} online</h2>
+        <h2 id="how-to-use">How to use {content.title} online</h2>
         <ol>
           {content.steps.map((step) => (
             <li key={step.title}><strong>{step.title}.</strong> {step.description}</li>
@@ -39,7 +42,7 @@ export function ToolSeoContent({ toolId }: { toolId: string }) {
         <h2>Known limitations</h2>
         <ul>{content.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
 
-        <h2>Frequently asked questions</h2>
+        <h2 id="faq">Frequently asked questions</h2>
         <div className="faq-list">
           {content.faqs.map((faq) => (
             <details className="faq-item" key={faq.question}>
@@ -59,6 +62,20 @@ export function ToolSeoContent({ toolId }: { toolId: string }) {
             </div>
           </>
         ) : null}
+
+        {category && (
+          <p className="tool-seo__hub">
+            Browse every{' '}
+            <Link href={GROUP_HOME[category.group]}>
+              {GROUP_LABEL[category.group].toLowerCase()}
+            </Link>
+            , or jump straight to{' '}
+            <Link href={`${GROUP_HOME[category.group]}#category-${category.id}`}>
+              {category.label.toLowerCase()}
+            </Link>
+            .
+          </p>
+        )}
       </div>
     </section>
   );
