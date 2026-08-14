@@ -5,7 +5,7 @@ import { GuideLinks } from '../../components/GuideLinks';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
 import { collectionPageGraph, jsonLdScript } from '../../lib/jsonld';
 
-const TITLE = 'Free Online PDF Tools – Merge, Split, Compress, Edit | opentools';
+const TITLE = 'Free PDF Tools Online – Merge, Split, Edit | opentools';
 const DESCRIPTION = 'Merge, split, rotate, crop, compress, convert, and edit PDFs locally in your browser. No uploads, no account, no watermark — always free.';
 
 export const metadata: Metadata = {

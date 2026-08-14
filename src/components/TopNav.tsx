@@ -38,6 +38,7 @@ function OtherMenu() {
           <li><Link className="megalink" href="/pdf">All PDF tools</Link></li>
           <li><Link className="megalink" href="/video">All video tools</Link></li>
           <li><Link className="megalink" href="/tools/video-editor">Video editor</Link></li>
+          <li><Link className="megalink" href="/tools/pdf-editor">PDF editor</Link></li>
           <li><Link className="megalink" href="/tools/color-picker">Color Picker</Link></li>
           <li><Link className="megalink" href="/tools/view-exif-data">View EXIF Data</Link></li>
           <li><Link className="megalink" href="/guides">Guides</Link></li>
@@ -110,7 +111,7 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
             <ToolMenu label="Convert" toolIds={['image-converter']} />
             <ToolMenu label="Resize & crop" toolIds={['resize-image', 'crop-image', 'rotate-image', 'flip-image', 'change-canvas-size']} />
             <ToolMenu label="Compress" toolIds={['compress-jpg', 'compress-png', 'compress-webp', 'batch-compress-images']} />
-            <ToolMenu label="PDF tools" toolIds={['merge-pdfs', 'split-pdf', 'compress-pdf', 'pdf-to-jpg', 'images-to-pdf', 'delete-pages', 'rearrange-pages', 'pdf-to-text']} />
+            <ToolMenu label="PDF tools" toolIds={['pdf-editor', 'merge-pdfs', 'split-pdf', 'compress-pdf', 'pdf-to-jpg', 'images-to-pdf', 'delete-pages', 'rearrange-pages', 'pdf-to-text']} />
             <div className="nav__item">
               <Link className="nav__trigger nav__trigger--link" href="/video">Video tools</Link>
             </div>
@@ -137,6 +138,7 @@ export function TopNav({ minimal = false }: { minimal?: boolean }) {
             <div className="mnav__quick">
               <Link className="btn btn--dark btn--sm" href="/image" onClick={close}>All image tools</Link>
               <Link className="btn btn--sm" href="/pdf" onClick={close}>PDF tools</Link>
+              <Link className="btn btn--sm" href="/video" onClick={close}>Video tools</Link>
             </div>
             <Link className="mnav__guide" href="/guides" onClick={close}>Guides</Link>
             <Link className="mnav__guide" href="/about" onClick={close}>About</Link>

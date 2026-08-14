@@ -1059,7 +1059,7 @@ export const TOOL_CONTENT = {
 
   'pdf-editor': {
     title: 'PDF Editor',
-    seoTitle: 'PDF Editor Free Online – Add Text, Font & Color | opentools',
+    seoTitle: 'PDF Editor Free Online – Add & Style Text | opentools',
     description:
       'Edit PDF text visually in your browser. Click to place text, choose font, size, and color. Original PDF structure stays intact — no upload.',
     intro: [

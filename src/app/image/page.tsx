@@ -5,7 +5,7 @@ import { GuideLinks } from '../../components/GuideLinks';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
 import { collectionPageGraph, jsonLdScript } from '../../lib/jsonld';
 
-const TITLE = 'Free Online Image Tools – Convert, Resize, Compress | opentools';
+const TITLE = 'Free Image Tools Online – Convert, Resize | opentools';
 const DESCRIPTION = 'Convert, resize, compress, edit, organize, and inspect images locally in your browser. No account, no uploads, no watermark — always free.';
 
 export const metadata: Metadata = {

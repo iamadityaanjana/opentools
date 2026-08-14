@@ -7,7 +7,7 @@ import { SiteFooter } from '../../components/SiteFooter';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
 import { collectionPageGraph, jsonLdScript } from '../../lib/jsonld';
 
-const TITLE = 'Image, PDF & Video Guides – Formats and Compression | opentools';
+const TITLE = 'Image, PDF & Video Guides – Free Online | opentools';
 const DESCRIPTION = 'Practical, sourced guides to image formats, compression, resizing, metadata privacy, PDF creation, GIF optimization, and browser-local processing.';
 
 export const metadata: Metadata = {

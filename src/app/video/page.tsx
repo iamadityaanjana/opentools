@@ -4,7 +4,7 @@ import { CATEGORY_BY_ID, TOOLS } from '../../tools/catalog';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
 import { collectionPageGraph, jsonLdScript } from '../../lib/jsonld';
 
-const TITLE = 'Free Online Video Tools – Trim, Compress, Convert | opentools';
+const TITLE = 'Free Video Tools Online – Trim, Compress | opentools';
 const DESCRIPTION = 'Trim, speed up, mute, compress, convert, and edit videos directly in your browser with FFmpeg.wasm. No upload, no account, no watermark.';
 
 export const metadata: Metadata = {
