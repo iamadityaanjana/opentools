@@ -96,6 +96,10 @@ export function categoriesForGroup(group: ToolGroup): ToolCategory[] {
   return CATEGORIES.filter((c) => c.group === group);
 }
 
+export function toolGroup(tool: Tool): ToolGroup {
+  return CATEGORY_BY_ID.get(tool.categoryId)?.group ?? 'image';
+}
+
 function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
@@ -148,6 +152,7 @@ const SEED: Record<string, ToolSeed[]> = {
     ['PDF to EPUB'],
   ],
   'pdf-edit': [
+    ['PDF Editor', 'live', '/tools/pdf-editor', 'Click to place text anywhere — font, size, and color — without rasterizing your PDF.'],
     ['Merge PDFs'],
     ['Split PDF'],
     ['Delete Pages'],
@@ -449,6 +454,7 @@ const CUSTOM: Record<string, { route: string }> = {
   'video-to-gif': { route: '/tools/video-to-gif' },
   'reverse-video': { route: '/tools/reverse-video' },
   'video-editor': { route: '/tools/video-editor' },
+  'pdf-editor': { route: '/tools/pdf-editor' },
 };
 
 const PDF_LIVE_BLURBS: Record<string, string> = {
@@ -467,6 +473,7 @@ const PDF_LIVE_BLURBS: Record<string, string> = {
   'unlock-pdf': 'Remove password protection from a PDF you can open — losslessly, with no upload.',
   'remove-pdf-password': 'Strip the password from an encrypted PDF while keeping selectable text and structure.',
   'redact-pdf': 'Draw boxes over sensitive content; redacted pixels are permanently removed from the exported PDF.',
+  'pdf-editor': 'Place styled text anywhere on your PDF — font, size, and color — without rasterizing the document.',
 };
 
 const PDF_SOON_REASON: Record<string, string> = {

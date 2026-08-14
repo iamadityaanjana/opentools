@@ -94,6 +94,14 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
     return () => window.removeEventListener('hashchange', openFromHash);
   }, [groups]);
 
+  // Deep-linkable search (`/image?q=resize`) so shared and crawled search URLs
+  // land on a filtered view. Read from location rather than useSearchParams to
+  // keep these pages statically prerendered.
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get('q');
+    if (initial) setQuery(initial);
+  }, []);
+
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
@@ -112,6 +120,12 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
       <TopNav />
 
       <main>
+        <nav className="crumbs crumbs--sub" aria-label="Breadcrumb">
+          <Link className="crumbs__link" href="/">Home</Link>
+          <span className="crumbs__sep">/</span>
+          <span className="crumbs__current">{GROUP_LABEL[group]}</span>
+        </nav>
+
         <section className="tools-hero">
           <div className="directory-hero__eyebrow">
             <HeroIcon size={16} weight="fill" />
@@ -184,14 +198,12 @@ export default function ToolsDirectoryPage({ group, children }: { group: ToolGro
                   })}
                 >
                   <summary className="tgroup__title">
-                    <span
-                      className="tgroup__toggle"
-                    >
+                    <h2 className="tgroup__toggle">
                       <CategoryIcon size={18} weight="fill" />
                       <span>{category.label}</span>
                       <span className="tgroup__count">{tools.length}</span>
                       <CaretDown className="tgroup__caret" size={17} weight="bold" />
-                    </span>
+                    </h2>
                   </summary>
                   <div className="tgrid tgrid--accordion">
                     {tools.map((tool) => (

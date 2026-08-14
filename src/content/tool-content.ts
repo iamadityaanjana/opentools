@@ -1057,6 +1057,46 @@ export const TOOL_CONTENT = {
     reviewedAt: '2026-07-12',
   },
 
+  'pdf-editor': {
+    title: 'PDF Editor',
+    seoTitle: 'PDF Editor Free Online – Add Text, Font & Color | opentools',
+    description:
+      'Edit PDF text visually in your browser. Click to place text, choose font, size, and color. Original PDF structure stays intact — no upload.',
+    intro: [
+      'PDF Editor is a visual workspace for placing styled text on any page of your document. Click the page to add a text box, drag it into position, and tune font family, size, and color from the sidebar.',
+      'Export uses pdf-lib to draw new text operators on top of the existing PDF. Vectors, images, fonts, and page structure are preserved — the file is not flattened or rasterized.',
+      'Use the optional white background behind text to cover existing content when you need a clean replacement look, without rebuilding the whole document.',
+    ],
+    steps: [
+      {
+        title: 'Upload your PDF',
+        description: 'Drop a PDF into the editor. Pages render locally with pdf.js — nothing is uploaded to a server.',
+      },
+      {
+        title: 'Place and style text',
+        description: 'Click anywhere on a page to add text. Pick Helvetica, Times, or Courier variants, set size and color, and drag boxes to reposition.',
+      },
+      {
+        title: 'Download the edited PDF',
+        description: 'Click Download PDF to save a copy with your text layers embedded while keeping the original document structure intact.',
+      },
+    ],
+    useCases: [
+      'Fill in blank fields on a scanned or flat PDF form.',
+      'Add a typed signature, date, or reference number to a contract.',
+      'Correct or replace visible text with a white-backed overlay.',
+      'Annotate one page of a multi-page report before sharing.',
+    ],
+    limitations: [
+      'This adds new text layers — it does not rewrite existing PDF text operators in place.',
+      'Fonts are limited to pdf-lib standard families (Helvetica, Times, Courier and variants).',
+      'Encrypted PDFs must be unlocked before editing.',
+    ],
+    faqs: [],
+    relatedToolIds: ['add-text-to-pdf', 'merge-pdfs', 'split-pdf', 'add-watermark-to-pdf', 'redact-pdf', 'fill-pdf-forms'],
+    reviewedAt: '2026-07-15',
+  },
+
   'add-text-to-pdf': {
     title: 'Add Text to PDF',
     seoTitle: 'Add Text to PDF Free Online – Edit PDF, No Upload | opentools',

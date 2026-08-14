@@ -3,19 +3,26 @@ import ToolsDirectoryPage from '../../screens/ToolsDirectoryPage';
 import { CATEGORY_BY_ID, TOOLS } from '../../tools/catalog';
 import { GuideLinks } from '../../components/GuideLinks';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
+import { collectionPageGraph, jsonLdScript } from '../../lib/jsonld';
+
+const TITLE = 'Free Online PDF Tools – Merge, Split, Compress, Edit | opentools';
+const DESCRIPTION = 'Merge, split, rotate, crop, compress, convert, and edit PDFs locally in your browser. No uploads, no account, no watermark — always free.';
 
 export const metadata: Metadata = {
-  title: 'Free online PDF tools',
-  description: 'Merge, split, rotate, crop, compress, convert, organize, inspect, and edit PDFs locally in your browser.',
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: '/pdf' },
   openGraph: {
+    type: 'website',
     url: '/pdf',
-    title: 'Free online PDF tools · opentools',
+    title: TITLE,
+    description: DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Free online PDF tools · opentools',
+    title: TITLE,
+    description: DESCRIPTION,
     images: [DEFAULT_TWITTER_IMAGE],
   },
 };
@@ -26,24 +33,21 @@ export default function PdfToolsPage() {
     && tool.route
     && CATEGORY_BY_ID.get(tool.categoryId)?.group === 'pdf'
   ));
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+
+  const graph = collectionPageGraph({
+    path: '/pdf',
     name: 'PDF tools',
-    url: 'https://www.opentools.fun/pdf',
-    mainEntity: {
-      '@type': 'ItemList',
-      itemListElement: items.map((tool, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: tool.name,
-        url: `https://www.opentools.fun${tool.route}`,
-      })),
-    },
-  };
+    description: DESCRIPTION,
+    breadcrumb: [
+      { name: 'Home', path: '/' },
+      { name: 'PDF tools', path: '/pdf' },
+    ],
+    items: items.map((tool) => ({ name: tool.name, path: tool.route!, description: tool.blurb })),
+  });
+
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(graph) }} />
       <ToolsDirectoryPage group="pdf">
         <GuideLinks
           slugs={['convert-images-to-pdf-privately', 'browser-vs-cloud-image-tools']}

@@ -3,19 +3,26 @@ import ToolsDirectoryPage from '../../screens/ToolsDirectoryPage';
 import { CATEGORY_BY_ID, TOOLS } from '../../tools/catalog';
 import { GuideLinks } from '../../components/GuideLinks';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
+import { collectionPageGraph, jsonLdScript } from '../../lib/jsonld';
+
+const TITLE = 'Free Online Image Tools – Convert, Resize, Compress | opentools';
+const DESCRIPTION = 'Convert, resize, compress, edit, organize, and inspect images locally in your browser. No account, no uploads, no watermark — always free.';
 
 export const metadata: Metadata = {
-  title: 'Free online image tools',
-  description: 'Convert, resize, compress, edit, organize, and inspect images locally in your browser. No account and no uploads to opentools.',
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: '/image' },
   openGraph: {
+    type: 'website',
     url: '/image',
-    title: 'Free online image tools · opentools',
+    title: TITLE,
+    description: DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Free online image tools · opentools',
+    title: TITLE,
+    description: DESCRIPTION,
     images: [DEFAULT_TWITTER_IMAGE],
   },
 };
@@ -26,24 +33,21 @@ export default function ImageToolsPage() {
     && tool.route
     && CATEGORY_BY_ID.get(tool.categoryId)?.group === 'image'
   ));
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+
+  const graph = collectionPageGraph({
+    path: '/image',
     name: 'Image tools',
-    url: 'https://www.opentools.fun/image',
-    mainEntity: {
-      '@type': 'ItemList',
-      itemListElement: items.map((tool, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: tool.name,
-        url: `https://www.opentools.fun${tool.route}`,
-      })),
-    },
-  };
+    description: DESCRIPTION,
+    breadcrumb: [
+      { name: 'Home', path: '/' },
+      { name: 'Image tools', path: '/image' },
+    ],
+    items: items.map((tool) => ({ name: tool.name, path: tool.route!, description: tool.blurb })),
+  });
+
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(graph) }} />
       <ToolsDirectoryPage group="image">
         <GuideLinks slugs={[
           'png-vs-jpg-vs-webp-vs-avif',

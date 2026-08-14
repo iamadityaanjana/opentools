@@ -37,13 +37,13 @@ export async function generateMetadata({ params }: ToolPageProps): Promise<Metad
       url: canonical,
       title: pageTitle,
       description,
-      images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: `${tool.name} – opentools` }],
+      images: [{ url: `${canonical}/opengraph-image`, width: 1200, height: 630, alt: `${tool.name} – opentools` }],
     },
     twitter: {
       card: 'summary_large_image',
       title: pageTitle,
       description,
-      images: ['/opengraph-image'],
+      images: [`${canonical}/opengraph-image`],
     },
   };
 }
@@ -57,6 +57,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const category = CATEGORY_BY_ID.get(tool.categoryId);
   const isPdf = category?.group === 'pdf';
   const canonical = `${SITE_URL}/tools/${tool.id}`;
+  const pageTitle = toolTitle(tool.name, content.seoTitle);
   const seoDesc = toolDescription(tool.name, content.description, isPdf);
   const groupPath = category ? GROUP_HOME[category.group] : '/image';
   const groupLabel = category ? GROUP_LABEL[category.group] : 'Image tools';
@@ -65,19 +66,40 @@ export default async function ToolPage({ params }: ToolPageProps) {
 
   const graph: Record<string, unknown>[] = [
     {
+      '@type': 'WebPage',
+      '@id': `${canonical}#webpage`,
+      url: canonical,
+      name: pageTitle,
+      description: seoDesc,
+      isPartOf: { '@id': `${SITE_URL}/#website` },
+      breadcrumb: { '@id': `${canonical}#breadcrumb` },
+      inLanguage: 'en',
+      dateModified: `${content.reviewedAt}T00:00:00.000Z`,
+      mainEntity: { '@id': `${canonical}#app` },
+    },
+    {
       '@type': 'SoftwareApplication',
       '@id': `${canonical}#app`,
       name: tool.name,
       url: canonical,
       description: seoDesc,
       applicationCategory: 'UtilitiesApplication',
+      applicationSubCategory: categoryLabel,
       operatingSystem: 'Any',
       browserRequirements: 'Requires a modern web browser with JavaScript enabled.',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      softwareRequirements: 'Modern web browser with JavaScript enabled',
+      permissions: 'No account or file upload required',
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', availability: 'https://schema.org/InStock' },
+      publisher: { '@id': `${SITE_URL}/#organization` },
       isPartOf: { '@id': `${SITE_URL}/#website` },
+      ...(content.supportedFormats?.length
+        ? { fileFormat: [...content.supportedFormats] }
+        : {}),
     },
     {
       '@type': 'BreadcrumbList',
+      '@id': `${canonical}#breadcrumb`,
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
         { '@type': 'ListItem', position: 2, name: groupLabel, item: `${SITE_URL}${groupPath}` },
@@ -91,15 +113,32 @@ export default async function ToolPage({ params }: ToolPageProps) {
   if (content.steps.length) {
     graph.push({
       '@type': 'HowTo',
+      '@id': `${canonical}#howto`,
       name: `How to use ${tool.name}`,
       description: seoDesc,
+      totalTime: 'PT2M',
       step: content.steps.map((step, i) => ({
         '@type': 'HowToStep',
         position: i + 1,
         name: step.title,
         text: step.description,
+        url: `${canonical}#how-to-use`,
       })),
       tool: { '@type': 'HowToTool', name: tool.name },
+    });
+  }
+
+  // The FAQ block is rendered on every tool page, so mirror it as FAQPage —
+  // this is what makes the questions eligible as rich results.
+  if (content.faqs.length) {
+    graph.push({
+      '@type': 'FAQPage',
+      '@id': `${canonical}#faq`,
+      mainEntity: content.faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+      })),
     });
   }
 

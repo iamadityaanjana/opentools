@@ -20,6 +20,7 @@ const LivePhotoPage = dynamic(() => import('../screens/LivePhotoPage'), { loadin
 const ImageComparatorPage = dynamic(() => import('../screens/ImageComparatorPage'), { loading });
 const VideoToolPage = dynamic(() => import('../screens/VideoToolPage'), { loading });
 const VideoEditorPage = dynamic(() => import('../screens/VideoEditorPage'), { loading });
+const PdfEditorPage = dynamic(() => import('../screens/PdfEditorPage'), { loading });
 
 const CUSTOM_PAGES: Record<string, ComponentType<{ children?: ReactNode }>> = {
   'color-picker': ColorPickerPage,
@@ -32,6 +33,7 @@ const CUSTOM_PAGES: Record<string, ComponentType<{ children?: ReactNode }>> = {
 
 export function ToolClientPage({ toolId, children }: { toolId: string; children?: ReactNode }) {
   if (toolId === 'video-editor') return <VideoEditorPage />;
+  if (toolId === 'pdf-editor') return <PdfEditorPage />;
   if (VIDEO_TOOL_IDS.includes(toolId)) return <VideoToolPage toolId={toolId} />;
   const CustomPage = CUSTOM_PAGES[toolId];
   if (CustomPage) return <CustomPage>{children}</CustomPage>;

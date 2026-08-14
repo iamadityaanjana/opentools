@@ -17,7 +17,7 @@ export function GET() {
 
   const body = `# opentools
 
-> opentools provides free image, PDF, GIF, color, metadata, and file utilities. Selected files are processed locally in the user's browser and are not uploaded to opentools for processing.
+> opentools provides free image, PDF, video, GIF, color, metadata, and file utilities. Selected files are processed locally in the user's browser and are not uploaded to opentools for processing.
 
 Canonical site: ${SITE_URL}/
 Language: Global English
@@ -27,6 +27,7 @@ Access: Free; no account required
 
 - [Image tools](${SITE_URL}/image)
 - [PDF tools](${SITE_URL}/pdf)
+- [Video tools](${SITE_URL}/video)
 - [Image converter](${SITE_URL}/convert)
 - [Guides](${SITE_URL}/guides)
 - [About opentools](${SITE_URL}/about)

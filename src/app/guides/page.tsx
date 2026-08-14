@@ -5,48 +5,56 @@ import { ARTICLES } from '../../content/articles';
 import { TopNav } from '../../components/TopNav';
 import { SiteFooter } from '../../components/SiteFooter';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
+import { collectionPageGraph, jsonLdScript } from '../../lib/jsonld';
+
+const TITLE = 'Image, PDF & Video Guides – Formats and Compression | opentools';
+const DESCRIPTION = 'Practical, sourced guides to image formats, compression, resizing, metadata privacy, PDF creation, GIF optimization, and browser-local processing.';
 
 export const metadata: Metadata = {
-  title: 'Image and PDF guides',
-  description: 'Practical, sourced guides to image formats, compression, resizing, metadata privacy, PDF creation, GIF optimization, and browser-local processing.',
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: '/guides' },
   openGraph: {
+    type: 'website',
     url: '/guides',
-    title: 'Image and PDF guides · opentools',
+    title: TITLE,
+    description: DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Image and PDF guides · opentools',
+    title: TITLE,
+    description: DESCRIPTION,
     images: [DEFAULT_TWITTER_IMAGE],
   },
 };
 
 export default function GuidesPage() {
-  const itemList = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  const graph = collectionPageGraph({
+    path: '/guides',
     name: 'opentools guides',
-    url: 'https://www.opentools.fun/guides',
-    mainEntity: {
-      '@type': 'ItemList',
-      itemListElement: ARTICLES.map((article, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: article.title,
-        url: `https://www.opentools.fun/guides/${article.slug}`,
-      })),
-    },
-  };
+    description: DESCRIPTION,
+    breadcrumb: [
+      { name: 'Home', path: '/' },
+      { name: 'Guides', path: '/guides' },
+    ],
+    items: ARTICLES.map((article) => ({
+      name: article.title,
+      path: `/guides/${article.slug}`,
+      description: article.description,
+    })),
+  });
 
   return (
     <div className="page page--wide">
       <TopNav />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList).replace(/</g, '\\u003c') }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(graph) }} />
       <main>
+        <nav className="crumbs crumbs--sub" aria-label="Breadcrumb">
+          <Link className="crumbs__link" href="/">Home</Link>
+          <span className="crumbs__sep">/</span>
+          <span className="crumbs__current">Guides</span>
+        </nav>
         <section className="tools-hero">
           <div className="directory-hero__eyebrow"><BookOpenText size={16} weight="fill" /> Evidence-led help</div>
           <h1 className="tools-title">Guides</h1>

@@ -4,7 +4,10 @@ import {
   degrees,
   rgb,
   type PDFPage,
+  type PDFFont,
 } from 'pdf-lib';
+import { PDF_FONT_MAP } from './pdfEditor/fonts';
+import type { PdfFontFamily, PdfTextAnnotation } from './pdfEditor/types';
 
 export interface PdfOutput {
   bytes: Uint8Array;
@@ -217,6 +220,52 @@ export async function addPdfPageNumbers(
     const point = textPosition(page, width, fontSize, position, 24);
     page.drawText(text, { ...point, size: fontSize, font, color: hexColor(color) });
   });
+  return document.save();
+}
+
+export async function applyPdfTextAnnotations(
+  file: File,
+  annotations: PdfTextAnnotation[],
+): Promise<Uint8Array> {
+  const document = await load(file);
+  const fontCache = new Map<PdfFontFamily, PDFFont>();
+
+  async function fontFor(family: PdfFontFamily): Promise<PDFFont> {
+    const cached = fontCache.get(family);
+    if (cached) return cached;
+    const embedded = await document.embedFont(PDF_FONT_MAP[family]);
+    fontCache.set(family, embedded);
+    return embedded;
+  }
+
+  for (const annotation of annotations) {
+    if (!annotation.text.trim()) continue;
+    if (annotation.pageIndex < 0 || annotation.pageIndex >= document.getPageCount()) continue;
+
+    const page = document.getPage(annotation.pageIndex);
+    const { width: pageW, height: pageH } = page.getSize();
+    const font = await fontFor(annotation.fontFamily);
+    const size = Math.max(4, annotation.fontSize);
+    const x = annotation.x * pageW;
+    const y = pageH - annotation.y * pageH - size;
+    const color = hexColor(annotation.color);
+    const textWidth = font.widthOfTextAtSize(annotation.text, size);
+    const textHeight = font.heightAtSize(size);
+
+    if (annotation.coverBackground) {
+      page.drawRectangle({
+        x: x - 2,
+        y: y - 4,
+        width: textWidth + 4,
+        height: textHeight + 6,
+        color: rgb(1, 1, 1),
+        borderWidth: 0,
+      });
+    }
+
+    page.drawText(annotation.text, { x, y, size, font, color });
+  }
+
   return document.save();
 }
 

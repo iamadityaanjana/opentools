@@ -2,19 +2,26 @@ import type { Metadata } from 'next';
 import ToolsDirectoryPage from '../../screens/ToolsDirectoryPage';
 import { CATEGORY_BY_ID, TOOLS } from '../../tools/catalog';
 import { DEFAULT_OG_IMAGE, DEFAULT_TWITTER_IMAGE } from '../../lib/seo';
+import { collectionPageGraph, jsonLdScript } from '../../lib/jsonld';
+
+const TITLE = 'Free Online Video Tools – Trim, Compress, Convert | opentools';
+const DESCRIPTION = 'Trim, speed up, mute, compress, convert, and edit videos directly in your browser with FFmpeg.wasm. No upload, no account, no watermark.';
 
 export const metadata: Metadata = {
-  title: 'Free Online Video Tools – Trim, Speed, Compress, Convert | opentools',
-  description: 'Trim, speed up, mute, compress, convert, and edit videos directly in your browser. No upload, no account, powered by FFmpeg.wasm.',
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: '/video' },
   openGraph: {
+    type: 'website',
     url: '/video',
-    title: 'Free online video tools · opentools',
+    title: TITLE,
+    description: DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Free online video tools · opentools',
+    title: TITLE,
+    description: DESCRIPTION,
     images: [DEFAULT_TWITTER_IMAGE],
   },
 };
@@ -26,28 +33,20 @@ export default function VideoToolsPage() {
     && CATEGORY_BY_ID.get(tool.categoryId)?.group === 'video'
   ));
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
+  const graph = collectionPageGraph({
+    path: '/video',
     name: 'Video tools',
-    url: 'https://www.opentools.fun/video',
-    mainEntity: {
-      '@type': 'ItemList',
-      itemListElement: items.map((tool, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: tool.name,
-        url: `https://www.opentools.fun${tool.route}`,
-      })),
-    },
-  };
+    description: DESCRIPTION,
+    breadcrumb: [
+      { name: 'Home', path: '/' },
+      { name: 'Video tools', path: '/video' },
+    ],
+    items: items.map((tool) => ({ name: tool.name, path: tool.route!, description: tool.blurb })),
+  });
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(graph) }} />
       <ToolsDirectoryPage group="video">
         <section className="dir-note">
           <p>
