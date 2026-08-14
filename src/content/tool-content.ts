@@ -1,3 +1,7 @@
+import { IMAGE_TOOL_CONTENT } from './tool-content-image';
+import { PDF_TOOL_CONTENT } from './tool-content-pdf';
+import { VIDEO_TOOL_CONTENT } from './tool-content-video';
+
 export interface ToolContentStep {
   readonly title: string;
   readonly description: string;
@@ -1914,6 +1918,26 @@ export const TOOL_CONTENT = {
 
 export type ToolContentId = keyof typeof TOOL_CONTENT;
 
+/**
+ * Authored content is split by vertical to keep each module reviewable. Lookup
+ * order does not matter because the id sets are disjoint.
+ */
+const CONTENT_MODULES: readonly Record<string, ToolContent>[] = [
+  TOOL_CONTENT,
+  VIDEO_TOOL_CONTENT,
+  PDF_TOOL_CONTENT,
+  IMAGE_TOOL_CONTENT,
+];
+
 export function getToolContent(id: string): ToolContent | undefined {
-  return TOOL_CONTENT[id as ToolContentId];
+  for (const module of CONTENT_MODULES) {
+    const found = module[id];
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** Every tool id that has hand-written content, across all modules. */
+export function authoredContentIds(): string[] {
+  return CONTENT_MODULES.flatMap((module) => Object.keys(module));
 }
