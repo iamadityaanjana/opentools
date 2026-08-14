@@ -692,7 +692,7 @@ export const TOOL_CONTENT = {
 
   'remove-exif-metadata': {
     title: 'Remove Metadata from Pictures',
-    seoTitle: 'Remove Metadata from Pictures Free Online – No Upload | opentools',
+    seoTitle: 'Remove Photo Metadata Free Online – No Upload | opentools',
     description:
       'Remove EXIF, GPS, and all hidden metadata from pictures instantly in your browser. No upload, no account. Supports JPG, PNG, WebP, HEIC, and more.',
     intro: [
@@ -824,7 +824,7 @@ export const TOOL_CONTENT = {
 
   'add-text': {
     title: 'Add Text to Image',
-    seoTitle: 'Add Text to Image Free Online – No Upload, Any Font | opentools',
+    seoTitle: 'Add Text to Image Free Online – Any Font | opentools',
     description:
       'Add text to photos and images in your browser. Choose font, size, color, and position. Drag to place anywhere. Free, no upload, works with JPG, PNG, WebP.',
     intro: [
@@ -940,7 +940,7 @@ export const TOOL_CONTENT = {
 
   'adjust-saturation': {
     title: 'Adjust Saturation',
-    seoTitle: 'Change Saturation of Image Free Online – No Upload | opentools',
+    seoTitle: 'Change Image Saturation Free Online – No Upload | opentools',
     description:
       'Change the saturation of an image online. Boost vivid colours or fade to greyscale. Free, no upload, browser-based. Works with JPG, PNG, and WebP.',
     intro: [
@@ -1099,7 +1099,7 @@ export const TOOL_CONTENT = {
 
   'add-text-to-pdf': {
     title: 'Add Text to PDF',
-    seoTitle: 'Add Text to PDF Free Online – Edit PDF, No Upload | opentools',
+    seoTitle: 'Add Text to PDF Free Online – No Upload | opentools',
     description:
       'Type text onto any PDF page in your browser. Click to place a text box anywhere. Free alternative to editing PDF with OpenOffice. No upload, no sign-up.',
     intro: [
@@ -1224,7 +1224,7 @@ export const TOOL_CONTENT = {
 
   'png-to-pdf': {
     title: 'PNG to PDF',
-    seoTitle: 'PNG to PDF Free Online – Browser-Based, No Upload | opentools',
+    seoTitle: 'PNG to PDF Free Online – No Upload | opentools',
     description:
       'Convert PNG images to PDF instantly in your browser. One image per page, no upload, no sign-up, no watermark. Works with screenshots and transparent PNGs.',
     intro: [
@@ -1282,7 +1282,7 @@ export const TOOL_CONTENT = {
 
   'merge-pdfs': {
     title: 'Merge PDFs',
-    seoTitle: 'Merge PDF Free Online – Combine PDFs in Your Browser | opentools',
+    seoTitle: 'Merge PDF Free Online – Combine PDFs Fast | opentools',
     description:
       'Merge multiple PDF files into one document instantly. Drag to reorder pages, combine any number of files, no upload, no sign-up, no size limit imposed by a server.',
     intro: [
@@ -1343,7 +1343,7 @@ export const TOOL_CONTENT = {
 
   'compress-pdf': {
     title: 'Compress PDF',
-    seoTitle: 'Compress PDF Free Online – Reduce Size, No Upload | opentools',
+    seoTitle: 'Compress PDF Free Online – Reduce Size | opentools',
     description:
       'Reduce PDF file size by re-encoding pages as compressed images. Choose resolution and quality. Runs in your browser — files are never uploaded to a server.',
     intro: [
@@ -1404,7 +1404,7 @@ export const TOOL_CONTENT = {
 
   'pdf-to-jpg': {
     title: 'PDF to JPG',
-    seoTitle: 'PDF to JPG Free Online – Convert PDF Pages to Images | opentools',
+    seoTitle: 'PDF to JPG Free Online – Convert PDF Pages | opentools',
     description:
       'Convert PDF pages to JPG images at a chosen DPI and quality. Runs entirely in your browser — no upload, no account required. Download all pages as a ZIP.',
     intro: [
@@ -1579,7 +1579,7 @@ export const TOOL_CONTENT = {
 
   'flip-image': {
     title: 'Flip Image',
-    seoTitle: 'Flip Image Free Online – Mirror Horizontally or Vertically | opentools',
+    seoTitle: 'Flip & Mirror Image Free Online – No Upload | opentools',
     description:
       'Flip images horizontally or vertically (mirror effect) in your browser. Free, instant, no upload. Works with JPG, PNG, WebP, AVIF, and HEIC.',
     intro: [
@@ -1632,7 +1632,7 @@ export const TOOL_CONTENT = {
 
   'rearrange-pages': {
     title: 'Rearrange Pages',
-    seoTitle: 'Rearrange PDF Pages Free Online – Drag to Reorder | opentools',
+    seoTitle: 'Rearrange PDF Pages Free Online – Reorder | opentools',
     description:
       'Reorder PDF pages visually by dragging thumbnails. Browser-based, no upload, no sign-up. Lossless — selectable text and links are fully preserved.',
     intro: [
@@ -1742,7 +1742,7 @@ export const TOOL_CONTENT = {
 
   'delete-pages': {
     title: 'Delete Pages',
-    seoTitle: 'Delete PDF Pages Free Online – Remove Pages, No Upload | opentools',
+    seoTitle: 'Delete PDF Pages Free Online – Remove Pages | opentools',
     description:
       'Remove unwanted pages from a PDF by entering a page range. Browser-based, no upload, lossless. Keeps all remaining text, links, and images intact.',
     intro: [
