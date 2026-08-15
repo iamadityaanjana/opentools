@@ -1,17 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Info, UploadSimple } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { ToolEditorial } from '../components/ToolEditorial';
 import { VideoStudio } from '../components/video-editor/VideoStudio';
 import { TOOL_BY_ID, CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL } from '../tools/catalog';
 import { getToolPageContent } from '../content/tool-page-content';
 
 const PERF_ACK_KEY = 'video-editor-perf-ack';
 
-export default function VideoEditorPage() {
+export default function VideoEditorPage({ children }: { children?: ReactNode }) {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [perfAcked, setPerfAcked] = useState(false);
@@ -152,6 +153,7 @@ export default function VideoEditorPage() {
             </div>
           </div>
         )}
+        {!file && <ToolEditorial>{children}</ToolEditorial>}
       </main>
       {!file && <SiteFooter />}
     </div>

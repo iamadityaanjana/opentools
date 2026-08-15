@@ -32,9 +32,9 @@ const CUSTOM_PAGES: Record<string, ComponentType<{ children?: ReactNode }>> = {
 };
 
 export function ToolClientPage({ toolId, children }: { toolId: string; children?: ReactNode }) {
-  if (toolId === 'video-editor') return <VideoEditorPage />;
-  if (toolId === 'pdf-editor') return <PdfEditorPage />;
-  if (VIDEO_TOOL_IDS.includes(toolId)) return <VideoToolPage toolId={toolId} />;
+  if (toolId === 'video-editor') return <VideoEditorPage>{children}</VideoEditorPage>;
+  if (toolId === 'pdf-editor') return <PdfEditorPage>{children}</PdfEditorPage>;
+  if (VIDEO_TOOL_IDS.includes(toolId)) return <VideoToolPage toolId={toolId}>{children}</VideoToolPage>;
   const CustomPage = CUSTOM_PAGES[toolId];
   if (CustomPage) return <CustomPage>{children}</CustomPage>;
   return <ToolRunner toolId={toolId}>{children}</ToolRunner>;

@@ -1936,8 +1936,3 @@ export function getToolContent(id: string): ToolContent | undefined {
   }
   return undefined;
 }
-
-/** Every tool id that has hand-written content, across all modules. */
-export function authoredContentIds(): string[] {
-  return CONTENT_MODULES.flatMap((module) => Object.keys(module));
-}

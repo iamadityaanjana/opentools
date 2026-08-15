@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Lightning, Trash, UploadSimple } from '@phosphor-icons/react';
 import { TOOL_BY_ID, CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL } from '../tools/catalog';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { ToolEditorial } from '../components/ToolEditorial';
 import { getToolPageContent } from '../content/tool-page-content';
 import { getFFmpeg, isFFmpegLoaded, onFFmpegProgress, resetFFmpeg, isFsError } from '../lib/ffmpeg';
 import { VIDEO_OPS } from '../lib/videoOps';
@@ -61,7 +62,7 @@ function Control({
   return null;
 }
 
-export default function VideoToolPage({ toolId }: { toolId: string }) {
+export default function VideoToolPage({ toolId, children }: { toolId: string; children?: ReactNode }) {
   const op = VIDEO_OPS[toolId];
   const tool = TOOL_BY_ID.get(toolId);
   const cat = tool ? CATEGORY_BY_ID.get(tool.categoryId) : undefined;
@@ -313,6 +314,7 @@ export default function VideoToolPage({ toolId }: { toolId: string }) {
             </div>
           )}
         </div>
+        <ToolEditorial>{children}</ToolEditorial>
       </main>
       <SiteFooter />
     </div>

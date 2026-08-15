@@ -1,15 +1,16 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, UploadSimple } from '@phosphor-icons/react';
 import { TopNav } from '../components/TopNav';
 import { SiteFooter } from '../components/SiteFooter';
+import { ToolEditorial } from '../components/ToolEditorial';
 import { PdfTextStudio } from '../components/pdf-editor/PdfTextStudio';
 import { TOOL_BY_ID, CATEGORY_BY_ID, GROUP_HOME, GROUP_LABEL } from '../tools/catalog';
 import { getToolPageContent } from '../content/tool-page-content';
 
-export default function PdfEditorPage() {
+export default function PdfEditorPage({ children }: { children?: ReactNode }) {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,6 +108,7 @@ export default function PdfEditorPage() {
             </div>
           </div>
         )}
+        {!file && <ToolEditorial>{children}</ToolEditorial>}
       </main>
       {!file && <SiteFooter />}
     </div>
