@@ -4,8 +4,11 @@ import {
   TOOL_BY_ID,
   CATEGORIES,
   CATEGORY_BY_ID,
+  GROUP_HOME,
+  GROUP_LABEL,
   LIVE_COUNT,
   TOTAL_COUNT,
+  type ToolGroup,
 } from './catalog';
 
 describe('tool catalog integrity', () => {
@@ -44,7 +47,26 @@ describe('tool catalog integrity', () => {
     expect(LIVE_COUNT).toBeLessThanOrEqual(TOTAL_COUNT);
   });
 
+  // Derived from GROUP_HOME rather than hardcoded: it is a Record<ToolGroup, string>,
+  // so adding a group to the union forces it to appear here too.
   it('uses valid groups for every category', () => {
-    for (const c of CATEGORIES) expect(['image', 'pdf']).toContain(c.group);
+    const groups = Object.keys(GROUP_HOME);
+    for (const c of CATEGORIES) expect(groups).toContain(c.group);
+  });
+
+  it('gives every group a home route and a label', () => {
+    for (const group of Object.keys(GROUP_HOME) as ToolGroup[]) {
+      expect(GROUP_HOME[group], `${group} should have a home route`).toMatch(/^\//);
+      expect(GROUP_LABEL[group], `${group} should have a label`).toBeTruthy();
+    }
+  });
+
+  it('backs every group with at least one category', () => {
+    for (const group of Object.keys(GROUP_HOME) as ToolGroup[]) {
+      expect(
+        CATEGORIES.some((c) => c.group === group),
+        `${group} should have at least one category`,
+      ).toBe(true);
+    }
   });
 });
