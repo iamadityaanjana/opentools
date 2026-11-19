@@ -404,12 +404,12 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'image-to-data-uri': { op: 'datauri' },
   // Metadata
   'view-exif-data': { op: 'viewExif' },
-  'remove-exif-metadata': { op: 'passthrough' },
+  'remove-exif-metadata': { op: 'stripExif' },
   'change-dpi': { op: 'changeDpi' },
   'change-resolution': { op: 'resize' },
   // Utilities (batch = multi-file upload of the same op)
   'batch-resize': { op: 'resize' },
-  'batch-convert': { op: 'passthrough' },
+  'batch-convert': { op: 'stripExif' },
   'batch-rotate': { op: 'rotate' },
   // Mobile
   'heic-to-jpg': { op: 'convertJpeg' },
