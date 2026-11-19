@@ -409,7 +409,7 @@ const IMPL: Record<string, { op: string; mode?: 'each' | 'combine' }> = {
   'change-resolution': { op: 'resize' },
   // Utilities (batch = multi-file upload of the same op)
   'batch-resize': { op: 'resize' },
-  'batch-convert': { op: 'stripExif' },
+  'batch-convert': { op: 'batchConvert' },
   'batch-rotate': { op: 'rotate' },
   // Mobile
   'heic-to-jpg': { op: 'convertJpeg' },
