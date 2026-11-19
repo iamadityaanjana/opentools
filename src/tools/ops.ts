@@ -372,6 +372,7 @@ async function rasterizePdf(file: File, p: Params, suffix: string): Promise<OpRe
 }
 
 export const OPS: Record<string, ImageOp> = {
+  ...exifOps,
   // ---- Resize & crop / geometry ----
   resize: {
     controls: [
