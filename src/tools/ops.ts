@@ -1,3 +1,4 @@
+import { exifOps } from './exifOps';
 // Generic image-operation engine. Every canvas-based tool is expressed as an
 // operation here; the ToolRunner renders controls from `controls` and applies
 // `run` (per file) or `runCombine` (all files -> one output).
